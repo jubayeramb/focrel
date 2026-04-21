@@ -4,9 +4,9 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Week 4 done → Week 5 (code already shipped in Week 1 Track E; only manual tests remain) → Week 6 — Polish & Ship
-**Current task:** Dispatch Week 6 — onboarding, notifications, global hotkey, autostart, theme/accent.
-**Next action:** Split Week 6 into 2 parallel tracks — Track M (onboarding + notifications + accent + README draft), Track N (global hotkey + autostart + settings UI + theme override).
+**Current phase:** 🎉 MVP code complete — Weeks 1–6 all shipped. Remaining items are user-gated (manual smoke tests, real icons, code-sign/notarize, Sparkle, screenshots).
+**Current task:** Hand off for user-gated verification and v0.1 ship prep.
+**Next action:** User runs `pnpm tauri dev` on a Mac to smoke-test the full flow: onboarding → create context → start session → wallpaper/music/shortcut fire → timer expiry → break prompt → end dialog → history. After that: real icons, code-sign, notarize, DMG + Sparkle.
 
 ---
 
@@ -207,25 +207,26 @@ Manual tests (user-gated — must run on the user's Mac):
 ## Week 6 — Polish & Ship
 
 ### Track M — Onboarding + notifications + accent + README
-- [ ] **M1** `src/routes/onboarding.tsx` — first-run experience: Welcome → Permissions explainer → Shortcut template install via `shell.open('-a Shortcuts <bundled.shortcut>')` (use `@tauri-apps/plugin-shell`) → Done
-- [ ] **M2** `src/lib/stores/settings-store.ts` — add `onboardingCompleted: boolean` field (persisted via plugin-store); default `false`; `markOnboardingComplete()`
-- [ ] **M3** Gate onboarding in `src/router.tsx`: if `!onboardingCompleted`, force-navigate to `/onboarding` on mount
-- [ ] **M4** `src/lib/os/notifications.ts` — thin wrapper over `@tauri-apps/plugin-notification` (`isPermissionGranted`, `requestPermission`, `sendNotification(title, body)`)
-- [ ] **M5** Hook notifications in `session-store`: session start → "Focus session started", session end → "Session complete — {name}" with duration (auto-triggered only; skip when user abandons)
-- [ ] **M6** Accent color from active context: set a CSS var `--accent-ctx` on `<html>` when `phase === 'active'`, cleared on idle; tint the timer progress bar + a few accents
-- [ ] **M7** `README.md` draft: what Focrel is, quick start (dev), architecture map, build/distribution notes, status (MVP shipping)
+- [x] **M1** `src/routes/onboarding.tsx` — first-run experience: Welcome → Permissions explainer → Shortcut template install via `shell.open('-a Shortcuts <bundled.shortcut>')` (use `@tauri-apps/plugin-shell`) → Done
+- [x] **M2** `src/lib/stores/settings-store.ts` — add `onboardingCompleted: boolean` field (persisted via plugin-store); default `false`; `markOnboardingComplete()`
+- [x] **M3** Gate onboarding in `src/router.tsx`: if `!onboardingCompleted`, force-navigate to `/onboarding` on mount
+- [x] **M4** `src/lib/os/notifications.ts` — thin wrapper over `@tauri-apps/plugin-notification` (`isPermissionGranted`, `requestPermission`, `sendNotification(title, body)`)
+- [x] **M5** Hook notifications in `session-store`: session start → "Focus session started", session end → "Session complete — {name}" with duration (auto-triggered only; skip when user abandons)
+- [x] **M6** Accent color from active context: set a CSS var `--accent-ctx` on `<html>` when `phase === 'active'`, cleared on idle; tint the timer progress bar + a few accents
+- [x] **M7** `README.md` draft: what Focrel is, quick start (dev), architecture map, build/distribution notes, status (MVP shipping)
 
 ### Track N — Global hotkey + autostart + settings UI + theme override
-- [ ] **N1** `src/lib/os/hotkey.ts` — wrappers over `@tauri-apps/plugin-global-shortcut` (`register`, `unregister`, `isRegistered`)
-- [ ] **N2** On app boot (after startup hooks): register `settings.globalHotkey` (default `"CmdOrControl+Shift+F"`) → brings window to front, navigates `/`
-- [ ] **N3** `src/lib/os/autostart.ts` — wrappers over `@tauri-apps/plugin-autostart` (`enable`, `disable`, `isEnabled`); sync with `settings.autostart` on change
-- [ ] **N4** `src/routes/settings.tsx` — replace stub with full form: Theme select (system/light/dark), Autostart toggle, Global Hotkey input (captures key combo), onboarding replay button
-- [ ] **N5** Theme override: `src/lib/theme.ts` — `applyTheme(mode: 'system'|'light'|'dark')`; call from settings-store subscriber; unmount the system-preference listener when non-system is chosen
-- [ ] **N6** Hotkey input component that captures `keydown` and serializes to `"CmdOrControl+Shift+F"` format; validates against duplicate system shortcuts where feasible (best-effort — Tauri surfaces the error on register)
+- [x] **N1** `src/lib/os/hotkey.ts` — wrappers over `@tauri-apps/plugin-global-shortcut` (`register`, `unregister`, `isRegistered`)
+- [x] **N2** On app boot (after startup hooks): register `settings.globalHotkey` (default `"CmdOrControl+Shift+F"`) → brings window to front, navigates `/`
+- [x] **N3** `src/lib/os/autostart.ts` — wrappers over `@tauri-apps/plugin-autostart` (`enable`, `disable`, `isEnabled`); sync with `settings.autostart` on change
+- [x] **N4** `src/routes/settings.tsx` — replace stub with full form: Theme select (system/light/dark), Autostart toggle, Global Hotkey input (captures key combo), onboarding replay button
+- [x] **N5** Theme override: `src/lib/theme.ts` — `applyTheme(mode: 'system'|'light'|'dark')`; call from settings-store subscriber; unmount the system-preference listener when non-system is chosen
+- [x] **N6** Hotkey input component that captures `keydown` and serializes to `"CmdOrControl+Shift+F"` format; validates against duplicate system shortcuts where feasible (best-effort — Tauri surfaces the error on register)
 
 ### Week 6 — Integration checkpoint
-- [ ] `pnpm typecheck` + `pnpm build` green
-- [ ] Two scoped commits: `feat(onboarding): first-run flow + notifications + accent + README`, `feat(settings): global hotkey + autostart + theme override + settings UI`
+- [x] `pnpm typecheck` + `pnpm build` green after M + N + reconcile
+- [x] Two scoped commits landed: `feat(onboarding): first-run flow, notifications, accent + README`, `feat(settings): global hotkey + autostart + theme override + settings UI`
+- [x] Added `resetOnboarding()` setter to settings-store so replay button doesn't reach into setState
 
 ### Week 6 — User-gated (deferred; needs hardware/Apple Dev account/source art)
 - [ ] Menu-bar mode (tray icon + mini popover) — post-MVP polish
@@ -260,5 +261,6 @@ Manual tests (user-gated — must run on the user's Mac):
 2026-04-21 — K — session page + pre-session + active view + timer hook: src/routes/session.tsx, src/components/session/{pre-session-panel,active-session-view}.tsx, src/lib/hooks/use-session-timer.ts. End flow stubbed with direct sessionStore.end call pending Track L integration.
 2026-04-21 — L — end-session dialog + break prompt + history route + history store: src/components/session/{end-session-dialog,break-prompt}.tsx, src/routes/contexts/history.tsx, src/router.tsx (+history route), src/routes/contexts/index.tsx (+History menu item), src/lib/stores/history-store.ts.
 2026-04-21 — CTO — Week 4 close-out: replaced K's handleEndRequest TODO with real dispatch — auto-end opens BreakPrompt (Take break / Extend 10m / End), manual end opens EndSessionDialog; Take-break ends session and starts seeded Break context for 5m. Verified Week 5 wire-up is already implemented in session-store (plan §3.5 pattern). 2 scoped commits (feat(session) K + feat(session) L+integration); 17 total on main.
-2026-04-21 — K — session page + pre-session + active view + timer hook: src/routes/session.tsx, src/components/session/{pre-session-panel,active-session-view}.tsx, src/lib/hooks/use-session-timer.ts. End flow stubbed with direct sessionStore.end call pending Track L integration.
-2026-04-21 — L — end-session dialog + break prompt + history route + history store: src/components/session/{end-session-dialog,break-prompt}.tsx, src/routes/contexts/history.tsx, src/router.tsx (+history route), src/routes/contexts/index.tsx (+History menu item), src/lib/stores/history-store.ts.
+2026-04-21 — M — onboarding + notifications + accent + README: src/routes/onboarding.tsx, src/lib/os/notifications.ts, src/lib/stores/settings-store.ts (+onboardingCompleted), src/lib/stores/session-store.ts (+notify hooks), src/lib/accent.ts, src/components/session/active-session-view.tsx (accent style), src/main.tsx (+initAccentSubscription), README.md.
+2026-04-21 — N — hotkey + autostart + settings UI + theme override: src/lib/os/{hotkey,autostart}.ts, src/lib/hotkey-bootstrap.ts, src/lib/hooks/use-hotkey-navigation.ts, src/lib/init.ts (+ hotkey init), src/lib/theme.ts (+applyTheme + settings subscribe), src/routes/root.tsx (hotkey listener), src/routes/settings.tsx (full form).
+2026-04-21 — CTO — Week 6 close-out + 🎉 MVP ship: added `resetOnboarding()` to settings-store; removed `as any` cast on navigate in settings.tsx; removed stale inline comments. Typecheck + build green. 2 scoped commits landed (feat(onboarding), feat(settings)). Weeks 1–6 all shipped in 20 total commits on main. Remaining items are strictly user-gated (Mac smoke tests, signing/notarize, real icons, Sparkle, screenshots).
