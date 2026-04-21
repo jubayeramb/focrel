@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 use std::sync::mpsc::{self, Sender};
 
 enum AudioCmd {
-    Play(String),
+    Play { path: String, loop_forever: bool },
     Pause,
     Resume,
     Stop,
@@ -21,6 +21,7 @@ fn audio_sender() -> AppResult<parking_lot::MutexGuard<'static, Sender<AudioCmd>
         std::thread::Builder::new()
             .name("focrel-audio".into())
             .spawn(move || {
+                use rodio::source::Source;
                 use rodio::{Decoder, OutputStream, Sink};
 
                 let (_stream, stream_handle) = match OutputStream::try_default() {
@@ -35,7 +36,7 @@ fn audio_sender() -> AppResult<parking_lot::MutexGuard<'static, Sender<AudioCmd>
 
                 for cmd in rx {
                     match cmd {
-                        AudioCmd::Play(path) => {
+                        AudioCmd::Play { path, loop_forever } => {
                             if let Some(s) = sink.take() {
                                 s.stop();
                             }
@@ -43,17 +44,19 @@ fn audio_sender() -> AppResult<parking_lot::MutexGuard<'static, Sender<AudioCmd>
                                 Ok(file) => {
                                     let buf = std::io::BufReader::new(file);
                                     match Decoder::new(buf) {
-                                        Ok(source) => {
-                                            match Sink::try_new(&stream_handle) {
-                                                Ok(s) => {
+                                        Ok(source) => match Sink::try_new(&stream_handle) {
+                                            Ok(s) => {
+                                                if loop_forever {
+                                                    s.append(source.repeat_infinite());
+                                                } else {
                                                     s.append(source);
-                                                    sink = Some(s);
                                                 }
-                                                Err(e) => {
-                                                    log::error!("audio: sink creation failed: {e}");
-                                                }
+                                                sink = Some(s);
                                             }
-                                        }
+                                            Err(e) => {
+                                                log::error!("audio: sink creation failed: {e}");
+                                            }
+                                        },
                                         Err(e) => {
                                             log::error!("audio: decode failed for {path}: {e}");
                                         }
@@ -102,8 +105,11 @@ fn send(cmd: AudioCmd) -> AppResult<()> {
 }
 
 #[tauri::command]
-pub fn audio_play(path: String) -> AppResult<()> {
-    send(AudioCmd::Play(path))
+pub fn audio_play(path: String, loop_forever: Option<bool>) -> AppResult<()> {
+    send(AudioCmd::Play {
+        path,
+        loop_forever: loop_forever.unwrap_or(false),
+    })
 }
 
 #[tauri::command]

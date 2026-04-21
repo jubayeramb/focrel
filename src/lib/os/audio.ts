@@ -4,7 +4,8 @@ function clampVolume(volume: number): number {
   return Math.min(1, Math.max(0, volume));
 }
 
-export const play = (path: string) => invoke<void>("audio_play", { path });
+export const play = (path: string, loopForever = false) =>
+  invoke<void>("audio_play", { path, loopForever });
 
 export const pause = () => invoke<void>("audio_pause");
 

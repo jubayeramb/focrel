@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Music, Pause, Play, Square } from "lucide-react";
+import { Music, Pause, Play, Repeat, Square } from "lucide-react";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ export function ActiveSessionView({
 
   const [isPlaying, setIsPlaying] = React.useState(hasMusicPath);
   const [volume, setVolume] = React.useState(0.6);
+  const [loopEnabled, setLoopEnabled] = React.useState(true);
 
   async function togglePlayPause() {
     if (isPlaying) {
@@ -63,8 +64,18 @@ export function ActiveSessionView({
       setIsPlaying(false);
     } else if (musicPath !== null) {
       // Sink was dropped by Stop — fresh decode required.
-      await audio.play(musicPath);
+      await audio.play(musicPath, loopEnabled);
       setIsPlaying(true);
+    }
+  }
+
+  async function toggleLoop() {
+    const next = !loopEnabled;
+    setLoopEnabled(next);
+    // Loop state is baked into the rodio source at play time, so to apply a
+    // toggle mid-track we need to restart playback from the current path.
+    if (isPlaying && musicPath !== null) {
+      await audio.play(musicPath, next);
     }
   }
 
@@ -178,6 +189,16 @@ export function ActiveSessionView({
                   aria-label="Volume"
                 />
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => void toggleLoop()}
+                aria-label={loopEnabled ? "Disable loop" : "Enable loop"}
+                className={loopEnabled ? "text-primary" : "text-muted-foreground"}
+              >
+                <Repeat className="size-4" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
