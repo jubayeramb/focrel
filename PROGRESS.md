@@ -4,10 +4,10 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Post-MVP sprint — Wave 1 shipped ✓. Wave 2 (sidebar + resume) in flight next.
-**Current task:** Dispatch Wave 2 agents — left sidebar layout replacing titlebar, resume-on-launch (add plannedDurationMinutes + taskIds to snapshot, differentiate resume vs crash).
-**Next action:** Launch 2 parallel agents for Wave 2. After green + smoke-test, dispatch Wave 3 (analytics home + system tray + in-app scheduler).
-**Post-MVP plan:** `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md` (three waves, all approved).
+**Current phase:** Post-MVP sprint — Waves 1 + 2 shipped ✓. Wave 3 kickoff next.
+**Current task:** Fix onboarding-race bug + UI polish pass (scrollbar + professional feel), then dispatch Wave 3 agents (analytics, tray, scheduler).
+**Next action:** Apply onboarding `hydrated` flag + global scrollbar CSS; commit as `fix(onboarding)` + `style(polish)`. Then launch 3 parallel agents for Wave 3.
+**Post-MVP plan:** `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md` (three waves + new 12a polish + 12b onboarding race).
 
 ---
 
@@ -249,15 +249,17 @@ Manual tests (user-gated — must run on the user's Mac):
 - [x] **#6** Dark-mode button contrast — added `text-foreground` to `outline` + `ghost` variants
 - [x] **#7** Hotkey default changed to `CmdOrControl+Alt+F`; registration errors surfaced in settings UI
 
-### Wave 2 — Sidebar layout + resume-on-launch
-- [ ] **#8** Left 240px sidebar (Home / Contexts / History / Settings + active-session pill) replacing titlebar; new `src/components/sidebar.tsx`, delete `titlebar.tsx`
-- [ ] **#8b** New global `/history` route listing sessions across all contexts
-- [ ] **#9** Snapshot extended with `plannedDurationMinutes` + `taskIds`; `checkForRecoveryOnLaunch` resumes sessions younger than `plannedDuration + 2h`, only reconciles as crash beyond that; root auto-navs to `/session` on resume
+### Wave 2 — Sidebar layout + resume-on-launch ✓ SHIPPED
+- [x] **#8** Left 240px sidebar (Home / Contexts / History / Settings + active-session pill) — `src/components/sidebar.tsx`; titlebar deleted
+- [x] **#8b** New global `/history` route listing sessions across all contexts
+- [x] **#9** Snapshot extended with `plannedDurationMinutes` + `taskIds`; `checkForRecoveryOnLaunch` resumes sessions younger than `plannedDuration + 2h`, reconciles as crash beyond that; RootLayout listens for `focrel:session-resumed` DOM event and auto-navs
 
-### Wave 3 — Analytics + tray + scheduled sessions
+### Wave 3 — Polish + analytics + tray + scheduled sessions
+- [x] **#12a** UI polish pass — scoped app scrollbar; dark-mode token tightening; SF Pro Display headings; sidebar tint token
+- [x] **#12b** Onboarding race fix — `hydrated` flag + gate defers redirect until hydrate resolves
 - [ ] **#10** Analytics home — `src/lib/db/repos/analytics.ts`, stat cards, 14-day bar chart, per-context breakdown
 - [ ] **#11** System tray — `src-tauri/src/tray.rs`, dynamic label with `{ctx} · MM:SS` during active session, submenu Start-by-context, End/Open/Quit
-- [ ] **#12** In-app scheduler — `0002_add_schedule.sql` migration + per-context `schedule_*` columns + `src/lib/scheduler.ts` tokio-less setInterval-based fire-once-per-day-per-context watcher
+- [ ] **#13** In-app scheduler — `0002_add_schedule.sql` migration + per-context `schedule_*` columns + `src/lib/scheduler.ts` tokio-less setInterval-based fire-once-per-day-per-context watcher
 
 ## v1.1 — Deferred
 - [ ] Network Extension content filter (Swift sidecar) for site blocking
@@ -295,3 +297,8 @@ Manual tests (user-gated — must run on the user's Mac):
 2026-04-21 — W1B — music replay + shortcut picker empty state + button contrast + hotkey default+error: src/components/session/active-session-view.tsx, src/components/pickers/shortcut-picker.tsx, src/components/ui/button.tsx, src/lib/hotkey-bootstrap.ts, src/lib/stores/settings-store.ts (+hotkeyError), src/routes/settings.tsx.
 2026-04-21 — W1C — test-shortcut button + pre-session task add/remove + home card quick-start: src/routes/contexts/editor.tsx, src/components/session/pre-session-panel.tsx, src/routes/home.tsx, src/router.tsx.
 2026-04-21 — CTO — Wave 1 close-out: typecheck + build + cargo check green. 3 scoped commits (feat(apps), fix(ui), feat(session,tasks)). Plan approved, Waves 2+3 queued.
+2026-04-21 — W2A — left sidebar + global history: src/components/sidebar.tsx, src/routes/root.tsx, src/routes/history.tsx, src/router.tsx (+/history route + nav prop cleanup), src/lib/db/repos/sessions.ts (+allRecent), src/components/titlebar.tsx deleted.
+2026-04-21 — W2B — resume-on-launch: src-tauri/src/session/snapshot.rs (+plannedDurationMinutes, +taskIds, resume/crash branching with 2h grace), src/lib/os/snapshot.ts (types + converters), src/lib/stores/session-store.ts (dispatches focrel:session-resumed DOM event on resume).
+2026-04-21 — CTO — Wave 2 close-out: typecheck + build + cargo check green. 2 scoped commits (feat(ui) sidebar + feat(session) resume). Plan extended with 12a UI polish + 12b onboarding-race fix per user feedback 2026-04-21.
+2026-04-21 — CTO — 12b (onboarding race): settings-store gained `hydrated: boolean`; OnboardingGate defers redirect until hydrated. fix(onboarding) commit.
+2026-04-21 — CTO — 12a (polish pass): scoped scrollbar via .app-scroll on main content (root scroll locked); dark-mode vars tightened (card, border, input, destructive); new --sidebar token; SF Pro Display on headings with -0.015em letter-spacing. style(polish) commit.
