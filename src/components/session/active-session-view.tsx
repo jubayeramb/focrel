@@ -194,22 +194,19 @@ export function ActiveSessionView({
 
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto py-4 pb-20">
-      {/* Mini-mode entry */}
-      <div className="flex justify-end">
+      {/* Timer card */}
+      <Card className="relative">
         <Button
           type="button"
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={() => void toggleMiniMode()}
-          className="text-xs text-muted-foreground"
+          aria-label="Enter mini mode"
+          title="Mini mode — compact always-on-top view"
+          className="absolute top-2 right-2 size-7 text-muted-foreground hover:text-foreground"
         >
           <Minimize2 className="size-3.5" />
-          Mini mode
         </Button>
-      </div>
-
-      {/* Timer card */}
-      <Card>
         <CardContent className="pt-8 pb-6 flex flex-col items-center gap-4">
           <span
             className={cn(
