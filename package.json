@@ -19,7 +19,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "turbo": "^2.3.0"
+    "turbo": "^2.3.0",
+    "wrangler": "^4.84.1"
   },
   "packageManager": "pnpm@10.28.2",
   "engines": {

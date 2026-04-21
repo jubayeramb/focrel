@@ -57,4 +57,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Match the wrangler version pinned at repo root so the action
+          # reuses the pre-installed binary instead of trying to install
+          # its own (which trips the pnpm workspace-root guard).
+          wranglerVersion: "4"
           command: pages deploy apps/web/out --project-name=focrel-web --branch=main --commit-dirty=true
