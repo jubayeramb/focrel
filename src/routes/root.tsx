@@ -25,11 +25,13 @@ export function RootLayout() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
       <Sidebar />
-      <main className="pl-60 min-h-screen">
-        <div className="px-8 py-8">
-          <Outlet />
+      <main className="pl-60 h-screen overflow-hidden">
+        <div className="app-scroll h-full overflow-y-auto pt-10">
+          <div className="px-10 pb-10 max-w-5xl mx-auto">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>
