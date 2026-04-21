@@ -118,12 +118,27 @@ export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
         </div>
       )}
 
-      {(state.phase === "idle" || state.phase === "recovered") && (
-        <PreSessionPanel
-          contextId={contextId}
-          onStarted={() => {}}
-          onCancel={onEndSession}
-        />
+      {(state.phase === "idle" ||
+        state.phase === "recovered" ||
+        (state.phase === "active" && state.contextId !== contextId)) && (
+        <>
+          {state.phase === "active" && state.contextId !== contextId && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                A session is running for{" "}
+                <span className="font-medium">
+                  {contexts.find((c) => c.id === state.contextId)?.name ?? "another context"}
+                </span>
+                . Starting this one will end it first.
+              </p>
+            </div>
+          )}
+          <PreSessionPanel
+            contextId={contextId}
+            onStarted={() => {}}
+            onCancel={onEndSession}
+          />
+        </>
       )}
 
       {state.phase === "starting" && (
