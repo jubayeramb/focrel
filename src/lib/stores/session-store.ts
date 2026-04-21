@@ -20,17 +20,20 @@ type StartParams = {
 
 type SessionStore = {
   state: SessionState;
+  lastError: string | null;
   start(params: StartParams): Promise<void>;
   end(endReason: "completed" | "interrupted" | "abandoned", notes?: string): Promise<void>;
   dismissRecoveryToast(): void;
+  clearError(): void;
   checkForRecoveryOnLaunch(): Promise<void>;
 };
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
   state: { phase: "idle" },
+  lastError: null,
 
   async start({ contextId, plannedDurationMinutes, taskIds }) {
-    set({ state: { phase: "starting", contextId } });
+    set({ lastError: null, state: { phase: "starting", contextId } });
 
     const sessionId = newId();
 
@@ -99,13 +102,21 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       void notify("Focus session started", context.name).catch(() => {});
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[focrel] session.start failed:", err);
+      set({ lastError: message });
       try {
         await get().end("abandoned");
-      } catch {
+      } catch (cleanupErr) {
+        console.error("[focrel] cleanup after failed start also failed:", cleanupErr);
         set({ state: { phase: "idle" } });
       }
       throw err;
     }
+  },
+
+  clearError() {
+    set({ lastError: null });
   },
 
   async end(endReason, notes) {

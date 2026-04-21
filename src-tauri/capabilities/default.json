@@ -21,7 +21,10 @@
     "sql:allow-select",
     "store:default",
     "shell:default",
-    "shell:allow-open",
+    {
+      "identifier": "shell:allow-open",
+      "allow": [{ "url": "^(https?|mailto|tel|shortcuts)://.+" }]
+    },
     "shell:allow-execute",
     "fs:default",
     "fs:allow-read-file",

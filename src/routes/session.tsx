@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { ActiveSessionView } from "@/components/session/active-session-view";
 import { BreakPrompt } from "@/components/session/break-prompt";
 import {
@@ -18,9 +19,10 @@ interface SessionPageProps {
 
 export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
   const sessionStore = useSessionStore();
-  const { state } = sessionStore;
+  const { state, lastError, clearError } = sessionStore;
   const getById = useContextStore((s) => s.getById);
   const contexts = useContextStore((s) => s.contexts);
+  const navigate = useNavigate();
 
   const [breakOpen, setBreakOpen] = useState(false);
   const [endDialogOpen, setEndDialogOpen] = useState(false);
@@ -31,8 +33,8 @@ export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <p className="text-sm text-muted-foreground">No context selected.</p>
-        <Button variant="outline" asChild>
-          <Link to="/">Go home</Link>
+        <Button variant="outline" onClick={() => void navigate({ to: "/" })}>
+          Go home
         </Button>
       </div>
     );
@@ -105,6 +107,25 @@ export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {lastError && (
+        <div className="flex items-start justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-destructive">Couldn't start the session.</p>
+              <p className="text-xs text-destructive/80 mt-1 break-all">{lastError}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={clearError}
+            className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {state.phase === "recovered" && (
         <div className="flex items-center justify-between rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <p className="text-sm text-amber-700 dark:text-amber-300">

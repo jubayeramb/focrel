@@ -1,5 +1,5 @@
 import { useRouterState } from "@tanstack/react-router";
-import { Settings } from "lucide-react";
+import { LayoutGrid, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +18,15 @@ function useBreadcrumb(): string {
 
 interface TitlebarProps {
   onNavigateHome: () => void;
+  onNavigateContexts: () => void;
   onNavigateSettings: () => void;
 }
 
-export function Titlebar({ onNavigateHome, onNavigateSettings }: TitlebarProps) {
+export function Titlebar({
+  onNavigateHome,
+  onNavigateContexts,
+  onNavigateSettings,
+}: TitlebarProps) {
   const breadcrumb = useBreadcrumb();
 
   return (
@@ -39,6 +44,16 @@ export function Titlebar({ onNavigateHome, onNavigateSettings }: TitlebarProps) 
       </div>
 
       <div className="flex items-center gap-1 pr-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs px-2"
+          onClick={onNavigateContexts}
+          aria-label="Contexts"
+        >
+          <LayoutGrid className="size-4" />
+          Contexts
+        </Button>
         <Button
           variant="default"
           size="sm"

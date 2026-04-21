@@ -13,6 +13,10 @@ export function RootLayout() {
     void navigate({ to: "/" });
   };
 
+  const handleNavigateContexts = () => {
+    void navigate({ to: "/contexts" });
+  };
+
   const handleNavigateSettings = () => {
     void navigate({ to: "/settings" });
   };
@@ -27,6 +31,7 @@ export function RootLayout() {
     <div className="min-h-screen bg-background text-foreground">
       <Titlebar
         onNavigateHome={handleNavigateHome}
+        onNavigateContexts={handleNavigateContexts}
         onNavigateSettings={handleNavigateSettings}
       />
       <main className="pt-14 px-8 pb-8">
