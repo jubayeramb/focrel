@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import {
+  keywords,
+  longDescription,
+  productName,
+  productUrl,
+  shortDescription,
+} from "@focrel/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,36 +20,32 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://focrel.app"),
+  metadataBase: new URL(productUrl),
   title: {
-    default: "Focrel — Context-switching focus app for macOS",
-    template: "%s — Focrel",
+    default: `${productName} — ${shortDescription}`,
+    template: `%s — ${productName}`,
   },
-  description:
-    "Bind each focus context to its own wallpaper, music, to-do list, and macOS Focus mode. Switch contexts, switch realms.",
-  keywords: [
-    "focus app",
-    "macOS",
-    "deep work",
-    "context switching",
-    "pomodoro",
-    "productivity",
-  ],
-  authors: [{ name: "Focrel" }],
+  description: longDescription,
+  keywords: [...keywords],
+  authors: [{ name: productName }],
   openGraph: {
     type: "website",
-    siteName: "Focrel",
-    title: "Focrel — Context-switching focus app for macOS",
-    description:
-      "Bind each focus context to its own wallpaper, music, to-do list, and macOS Focus mode.",
+    siteName: productName,
+    title: `${productName} — ${shortDescription}`,
+    description: longDescription,
+    url: productUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Focrel — Context-switching focus app",
-    description:
-      "Bind each focus context to its own wallpaper, music, to-do list, and macOS Focus mode.",
+    title: `${productName} — ${shortDescription}`,
+    description: longDescription,
   },
 };
+
+// Runs before React hydrates, so there's no flash of the wrong theme.
+// Respects (in priority): explicit user choice in localStorage → OS preference.
+// Desktop app uses the same `.dark` class convention, so brand tokens flip uniformly.
+const themeInitScript = `try{var e=localStorage.getItem('focrel-theme');if(e==='dark'||(!e&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`;
 
 export default function RootLayout({
   children,
@@ -54,6 +57,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
