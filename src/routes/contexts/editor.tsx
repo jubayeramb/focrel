@@ -33,6 +33,10 @@ interface ContextDraft {
   appsToQuit: string[];
   blockedSites: string[];
   defaultDurationMinutes: number;
+  scheduleEnabled: number;
+  scheduleTime: string;
+  scheduleDays: number[];
+  scheduleAutoStart: number;
 }
 
 const defaultDraft: ContextDraft = {
@@ -47,6 +51,10 @@ const defaultDraft: ContextDraft = {
   appsToQuit: [],
   blockedSites: [],
   defaultDurationMinutes: 25,
+  scheduleEnabled: 0,
+  scheduleTime: "",
+  scheduleDays: [],
+  scheduleAutoStart: 1,
 };
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
@@ -90,6 +98,12 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         appsToQuit: JSON.parse(loaded.appsToQuit) as string[],
         blockedSites: JSON.parse(loaded.blockedSites) as string[],
         defaultDurationMinutes: loaded.defaultDurationMinutes,
+        scheduleEnabled: loaded.scheduleEnabled,
+        scheduleTime: loaded.scheduleTime ?? "",
+        scheduleDays: loaded.scheduleDays
+          ? loaded.scheduleDays.split(",").filter(Boolean).map(Number)
+          : [],
+        scheduleAutoStart: loaded.scheduleAutoStart,
       });
     }
 
@@ -166,6 +180,10 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         appsToQuit: JSON.stringify(draft.appsToQuit),
         blockedSites: JSON.stringify(draft.blockedSites),
         defaultDurationMinutes: draft.defaultDurationMinutes,
+        scheduleEnabled: draft.scheduleEnabled,
+        scheduleTime: draft.scheduleEnabled && draft.scheduleTime ? draft.scheduleTime : null,
+        scheduleDays: draft.scheduleDays.join(","),
+        scheduleAutoStart: draft.scheduleAutoStart,
       };
       if (isEdit) {
         await contextStore.update(contextId!, payload);
@@ -423,7 +441,83 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         </CardContent>
       </Card>
 
-      {/* Section 4: Tasks — only available in edit mode (new contexts have no id yet) */}
+      {/* Section 4: Schedule */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Schedule</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="schedule-enabled">Schedule this session</Label>
+            <input
+              id="schedule-enabled"
+              type="checkbox"
+              checked={draft.scheduleEnabled === 1}
+              onChange={(e) => patch("scheduleEnabled", e.target.checked ? 1 : 0)}
+              className="h-4 w-4 rounded border-input accent-primary"
+            />
+          </div>
+
+          {draft.scheduleEnabled === 1 && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="schedule-time">Time</Label>
+                <input
+                  id="schedule-time"
+                  type="time"
+                  value={draft.scheduleTime}
+                  onChange={(e) => patch("scheduleTime", e.target.value)}
+                  className="flex h-9 w-36 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Days</Label>
+                <div className="flex gap-2">
+                  {(["S", "M", "T", "W", "T", "F", "S"] as const).map((label, dow) => (
+                    <button
+                      key={dow}
+                      type="button"
+                      onClick={() => {
+                        const days = draft.scheduleDays.includes(dow)
+                          ? draft.scheduleDays.filter((d) => d !== dow)
+                          : [...draft.scheduleDays, dow].sort((a, b) => a - b);
+                        patch("scheduleDays", days);
+                      }}
+                      className={[
+                        "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors",
+                        draft.scheduleDays.includes(dow)
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-input bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      ].join(" ")}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="schedule-auto-start">Start automatically</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Off — send a notification instead
+                  </p>
+                </div>
+                <input
+                  id="schedule-auto-start"
+                  type="checkbox"
+                  checked={draft.scheduleAutoStart === 1}
+                  onChange={(e) => patch("scheduleAutoStart", e.target.checked ? 1 : 0)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 5: Tasks — only available in edit mode (new contexts have no id yet) */}
       {contextId && (
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">

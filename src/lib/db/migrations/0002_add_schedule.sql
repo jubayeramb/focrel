@@ -1,0 +1,4 @@
+ALTER TABLE contexts ADD COLUMN schedule_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE contexts ADD COLUMN schedule_time TEXT;
+ALTER TABLE contexts ADD COLUMN schedule_days TEXT NOT NULL DEFAULT '';
+ALTER TABLE contexts ADD COLUMN schedule_auto_start INTEGER NOT NULL DEFAULT 1;

@@ -15,6 +15,10 @@ type ContextRow = {
   apps_to_quit: string;
   blocked_sites: string;
   default_duration_minutes: number;
+  schedule_enabled: number;
+  schedule_time: string | null;
+  schedule_days: string;
+  schedule_auto_start: number;
   created_at: number;
   updated_at: number;
   archived_at: number | null;
@@ -34,6 +38,10 @@ function toContext(row: ContextRow): Context {
     appsToQuit: row.apps_to_quit,
     blockedSites: row.blocked_sites,
     defaultDurationMinutes: row.default_duration_minutes,
+    scheduleEnabled: row.schedule_enabled,
+    scheduleTime: row.schedule_time,
+    scheduleDays: row.schedule_days,
+    scheduleAutoStart: row.schedule_auto_start,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -67,8 +75,9 @@ export const contextsRepo = {
         id, name, description, color, icon,
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
+        schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -82,6 +91,10 @@ export const contextsRepo = {
         input.appsToQuit ?? "[]",
         input.blockedSites ?? "[]",
         input.defaultDurationMinutes ?? 25,
+        input.scheduleEnabled ?? 0,
+        input.scheduleTime ?? null,
+        input.scheduleDays ?? "",
+        input.scheduleAutoStart ?? 1,
         now,
         now,
         input.archivedAt ?? null,
@@ -107,6 +120,10 @@ export const contextsRepo = {
     if (patch.appsToQuit !== undefined) { fields.push("apps_to_quit = ?"); values.push(patch.appsToQuit); }
     if (patch.blockedSites !== undefined) { fields.push("blocked_sites = ?"); values.push(patch.blockedSites); }
     if (patch.defaultDurationMinutes !== undefined) { fields.push("default_duration_minutes = ?"); values.push(patch.defaultDurationMinutes); }
+    if (patch.scheduleEnabled !== undefined) { fields.push("schedule_enabled = ?"); values.push(patch.scheduleEnabled); }
+    if (patch.scheduleTime !== undefined) { fields.push("schedule_time = ?"); values.push(patch.scheduleTime); }
+    if (patch.scheduleDays !== undefined) { fields.push("schedule_days = ?"); values.push(patch.scheduleDays); }
+    if (patch.scheduleAutoStart !== undefined) { fields.push("schedule_auto_start = ?"); values.push(patch.scheduleAutoStart); }
     if (patch.archivedAt !== undefined) { fields.push("archived_at = ?"); values.push(patch.archivedAt); }
 
     values.push(id);

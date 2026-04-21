@@ -1,5 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 import initSql from "./migrations/0001_init.sql?raw";
+import migration2 from "./migrations/0002_add_schedule.sql?raw";
 
 let _db: Database | null = null;
 
@@ -25,21 +26,40 @@ export async function runMigrations(): Promise<void> {
     ["0001_init"],
   );
 
-  if (rows.length > 0) {
-    return;
+  if (rows.length === 0) {
+    const statements = initSql
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const statement of statements) {
+      await db.execute(statement);
+    }
+
+    await db.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)", [
+      "0001_init",
+      Date.now(),
+    ]);
   }
 
-  const statements = initSql
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const rows2 = await db.select<Array<{ name: string }>>(
+    "SELECT name FROM _migrations WHERE name = ?",
+    ["0002_add_schedule"],
+  );
 
-  for (const statement of statements) {
-    await db.execute(statement);
+  if (rows2.length === 0) {
+    const statements2 = migration2
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const statement of statements2) {
+      await db.execute(statement);
+    }
+
+    await db.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)", [
+      "0002_add_schedule",
+      Date.now(),
+    ]);
   }
-
-  await db.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)", [
-    "0001_init",
-    Date.now(),
-  ]);
 }
