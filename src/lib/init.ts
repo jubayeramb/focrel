@@ -1,4 +1,5 @@
 import { runMigrations, seedIfEmpty } from "./db";
+import { initHotkeyBootstrap } from "./hotkey-bootstrap";
 import { useContextStore } from "./stores/context-store";
 import { useSessionStore } from "./stores/session-store";
 import { useSettingsStore } from "./stores/settings-store";
@@ -11,4 +12,5 @@ export async function runStartupHooks(): Promise<void> {
     useContextStore.getState().load(),
     useSessionStore.getState().checkForRecoveryOnLaunch(),
   ]);
+  void initHotkeyBootstrap();
 }

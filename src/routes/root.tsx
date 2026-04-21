@@ -1,5 +1,7 @@
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { Titlebar } from "@/components/titlebar";
+import { useHotkeyNavigation } from "@/lib/hooks/use-hotkey-navigation";
 
 export function RootLayout() {
   const navigate = useNavigate();
@@ -14,6 +16,12 @@ export function RootLayout() {
   const handleNavigateSettings = () => {
     void navigate({ to: "/settings" });
   };
+
+  const handleHotkeyActivate = useCallback(() => {
+    void navigate({ to: "/" });
+  }, [navigate]);
+
+  useHotkeyNavigation(handleHotkeyActivate);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -1,9 +1,141 @@
-import { Globe, Keyboard, Moon, Sun, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Keyboard, Monitor, Moon, Power, Sun, Zap } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { autostart } from "@/lib/os/autostart";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const DEFAULT_HOTKEY = "CmdOrControl+Shift+F";
+
+/** Convert a Tauri hotkey string like "CmdOrControl+Shift+F" to a readable glyph. */
+function formatHotkey(key: string): string {
+  return key
+    .split("+")
+    .map((part) => {
+      switch (part) {
+        case "CmdOrControl":
+          return "⌘";
+        case "Shift":
+          return "⇧";
+        case "Alt":
+          return "⌥";
+        case "Ctrl":
+          return "⌃";
+        default:
+          return part.length === 1 ? part.toUpperCase() : part;
+      }
+    })
+    .join("");
+}
+
+/** Serialize a KeyboardEvent to a Tauri-compatible accelerator string. */
+function serializeKeyEvent(e: KeyboardEvent): string | null {
+  const parts: string[] = [];
+  if (e.metaKey || e.ctrlKey) parts.push("CmdOrControl");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.altKey) parts.push("Alt");
+
+  const key = e.code;
+  if (key.startsWith("Key")) {
+    parts.push(key.slice(3));
+  } else if (key.startsWith("Digit")) {
+    parts.push(key.slice(5));
+  } else if (key.startsWith("F") && /^F\d+$/.test(key)) {
+    parts.push(key);
+  } else if (key === "Space") {
+    parts.push("Space");
+  } else if (key === "Tab") {
+    parts.push("Tab");
+  } else {
+    // skip bare modifier keys, arrows, etc.
+    return null;
+  }
+
+  // Require at least one modifier for non-function keys.
+  const hasMod = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+  if (!hasMod && !key.startsWith("F")) return null;
+
+  return parts.join("+");
+}
+
+// ─── HotkeyInput ─────────────────────────────────────────────────────────────
+
+interface HotkeyInputProps {
+  value: string;
+  onChange: (key: string) => void;
+}
+
+function HotkeyInput({ value, onChange }: HotkeyInputProps) {
+  const [capturing, setCapturing] = useState(false);
+  const boxRef = useRef<HTMLButtonElement>(null);
+
+  const startCapture = () => {
+    setCapturing(true);
+    setTimeout(() => boxRef.current?.focus(), 0);
+  };
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!capturing) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === "Escape") {
+        setCapturing(false);
+        return;
+      }
+
+      const serialized = serializeKeyEvent(e.nativeEvent);
+      if (serialized !== null) {
+        onChange(serialized);
+        setCapturing(false);
+      }
+    },
+    [capturing, onChange],
+  );
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        ref={boxRef}
+        type="button"
+        onClick={startCapture}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setCapturing(false)}
+        className={[
+          "min-w-[120px] px-3 py-1.5 rounded-md border text-sm font-mono text-center",
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          capturing
+            ? "border-ring bg-accent text-accent-foreground animate-pulse"
+            : "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        ].join(" ")}
+      >
+        {capturing ? "Press keys…" : formatHotkey(value)}
+      </button>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
+  const navigate = useNavigate();
+  const {
+    theme,
+    autostart: autostartEnabled,
+    globalHotkey,
+    setTheme,
+    setAutostart,
+    setGlobalHotkey,
+    resetOnboarding,
+  } = useSettingsStore();
+
+  const currentHotkey = globalHotkey ?? DEFAULT_HOTKEY;
+
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>
@@ -11,14 +143,50 @@ export function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">Configure Focrel to your liking.</p>
       </div>
 
-      <ThemeSection />
-      <AutostartSection />
-      <GlobalHotkeySection />
+      <ThemeSection theme={theme} onThemeChange={setTheme} />
+      <AutostartSection
+        enabled={autostartEnabled}
+        onToggle={async (next) => {
+          try {
+            await autostart.sync(next);
+            setAutostart(next);
+          } catch {
+            // autostart.sync failed — state not changed, toggle naturally reverts
+          }
+        }}
+      />
+      <GlobalHotkeySection
+        hotkey={currentHotkey}
+        onHotkeyChange={(key) => setGlobalHotkey(key)}
+        onReset={() => setGlobalHotkey(DEFAULT_HOTKEY)}
+      />
+
+      <OnboardingSection
+        onReplay={() => {
+          resetOnboarding();
+          void navigate({ to: "/onboarding" });
+        }}
+      />
     </div>
   );
 }
 
-function ThemeSection() {
+// ─── Theme section ────────────────────────────────────────────────────────────
+
+type Theme = "system" | "light" | "dark";
+
+interface ThemeSectionProps {
+  theme: Theme;
+  onThemeChange: (t: Theme) => void;
+}
+
+const THEME_OPTIONS: { label: string; value: Theme; icon: React.ElementType }[] = [
+  { label: "System", value: "system", icon: Monitor },
+  { label: "Light", value: "light", icon: Sun },
+  { label: "Dark", value: "dark", icon: Moon },
+];
+
+function ThemeSection({ theme, onThemeChange }: ThemeSectionProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -31,18 +199,18 @@ function ThemeSection() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-3">
-          {(
-            [
-              { label: "System", icon: Globe },
-              { label: "Light", icon: Sun },
-              { label: "Dark", icon: Moon },
-            ] as const
-          ).map(({ label, icon: Icon }) => (
+        <div className="flex gap-2">
+          {THEME_OPTIONS.map(({ label, value, icon: Icon }) => (
             <button
-              key={label}
+              key={value}
               type="button"
-              className="flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border border-input hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
+              onClick={() => onThemeChange(value)}
+              className={[
+                "flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border text-sm transition-colors",
+                theme === value
+                  ? "border-ring bg-accent text-accent-foreground font-medium"
+                  : "border-input hover:bg-accent hover:text-accent-foreground",
+              ].join(" ")}
             >
               <Icon className="size-4" />
               {label}
@@ -54,7 +222,29 @@ function ThemeSection() {
   );
 }
 
-function AutostartSection() {
+// ─── Autostart section ────────────────────────────────────────────────────────
+
+interface AutostartSectionProps {
+  enabled: boolean;
+  onToggle: (next: boolean) => Promise<void>;
+}
+
+function AutostartSection({ enabled, onToggle }: AutostartSectionProps) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = async () => {
+    setError(null);
+    setPending(true);
+    try {
+      await onToggle(!enabled);
+    } catch {
+      setError("Failed to update login item. Check System Settings > General > Login Items.");
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -66,27 +256,48 @@ function AutostartSection() {
           Launch Focrel automatically when you log in.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="autostart" className="text-sm font-normal">
-            Start at login
+          <Label htmlFor="autostart-toggle" className="text-sm font-normal cursor-pointer">
+            Open Focrel at login
           </Label>
           <button
-            id="autostart"
+            id="autostart-toggle"
             type="button"
             role="switch"
-            aria-checked="false"
-            className="relative inline-flex h-5 w-9 items-center rounded-full border-2 border-transparent bg-input transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-checked={enabled}
+            disabled={pending}
+            onClick={() => void handleClick()}
+            className={[
+              "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed",
+              enabled ? "bg-primary" : "bg-input",
+            ].join(" ")}
           >
-            <span className="pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform translate-x-0" />
+            <span
+              className={[
+                "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
+                enabled ? "translate-x-4" : "translate-x-0",
+              ].join(" ")}
+            />
           </button>
         </div>
+        {error !== null && <p className="text-xs text-destructive">{error}</p>}
       </CardContent>
     </Card>
   );
 }
 
-function GlobalHotkeySection() {
+// ─── Global hotkey section ────────────────────────────────────────────────────
+
+interface GlobalHotkeySectionProps {
+  hotkey: string;
+  onHotkeyChange: (key: string) => void;
+  onReset: () => void;
+}
+
+function GlobalHotkeySection({ hotkey, onHotkeyChange, onReset }: GlobalHotkeySectionProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -95,21 +306,47 @@ function GlobalHotkeySection() {
           Global Hotkey
         </CardTitle>
         <CardDescription className="text-xs">
-          Trigger the quick-start popover from anywhere on your Mac.
+          Bring Focrel to the front from anywhere on your Mac.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="hotkey">Hotkey combination</Label>
-          <Input
-            id="hotkey"
-            placeholder="e.g. CmdOrCtrl+Shift+F"
-            className="font-mono text-sm"
-          />
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-normal">Hotkey combination</Label>
+          <div className="flex items-center gap-2">
+            <HotkeyInput value={hotkey} onChange={onHotkeyChange} />
+            <Button variant="ghost" size="sm" onClick={onReset} className="text-xs text-muted-foreground">
+              Reset
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Use Electron-style modifier names: CmdOrCtrl, Alt, Shift, plus a letter or function key.
+          Click the box then press your desired key combo. Escape cancels.
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Onboarding replay section ────────────────────────────────────────────────
+
+interface OnboardingSectionProps {
+  onReplay: () => void;
+}
+
+function OnboardingSection({ onReplay }: OnboardingSectionProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Power className="size-4" />
+          Onboarding
+        </CardTitle>
+        <CardDescription className="text-xs">Re-run the first-launch setup flow.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" size="sm" onClick={onReplay}>
+          Replay onboarding
+        </Button>
       </CardContent>
     </Card>
   );
