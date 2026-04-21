@@ -51,7 +51,8 @@ export function ActiveSessionView({
   const completedCount = sessionTasks.filter((t) => t.status === "done").length;
 
   const context = useContextStore((s) => s.getById(contextId));
-  const hasMusicPath = Boolean(context?.musicPath);
+  const musicPath = context?.musicPath ?? null;
+  const hasMusicPath = musicPath !== null;
 
   const [isPlaying, setIsPlaying] = React.useState(hasMusicPath);
   const [volume, setVolume] = React.useState(0.6);
@@ -60,8 +61,9 @@ export function ActiveSessionView({
     if (isPlaying) {
       await audio.pause();
       setIsPlaying(false);
-    } else {
-      await audio.resume();
+    } else if (musicPath !== null) {
+      // Sink was dropped by Stop — fresh decode required.
+      await audio.play(musicPath);
       setIsPlaying(true);
     }
   }

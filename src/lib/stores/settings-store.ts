@@ -11,11 +11,13 @@ type Settings = {
 };
 
 type SettingsStore = Settings & {
+  hotkeyError: string | null;
   setTheme(theme: Theme): void;
   setAutostart(autostart: boolean): void;
   setGlobalHotkey(hotkey: string | null): void;
   markOnboardingComplete(): void;
   resetOnboarding(): void;
+  clearHotkeyError(): void;
   hydrate(): Promise<void>;
   persist(): void;
 };
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   autostart: false,
   globalHotkey: null,
   onboardingCompleted: false,
+  hotkeyError: null,
 
   setTheme(theme) {
     set({ theme });
@@ -57,6 +60,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   resetOnboarding() {
     set({ onboardingCompleted: false });
     get().persist();
+  },
+
+  clearHotkeyError() {
+    set({ hotkeyError: null });
   },
 
   async hydrate() {

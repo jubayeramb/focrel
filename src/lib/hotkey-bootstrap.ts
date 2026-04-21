@@ -2,7 +2,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { registerHotkey, unregisterHotkey } from "./os/hotkey";
 import { useSettingsStore } from "./stores/settings-store";
 
-const DEFAULT_HOTKEY = "CmdOrControl+Shift+F";
+const DEFAULT_HOTKEY = "CmdOrControl+Alt+F";
 
 async function activate(): Promise<void> {
   const win = getCurrentWebviewWindow();
@@ -28,8 +28,9 @@ export async function initHotkeyBootstrap(): Promise<void> {
           void activate();
         });
         registeredKey = next;
+        useSettingsStore.setState({ hotkeyError: null });
       } catch (err) {
-        console.warn("[hotkey-bootstrap] failed to register", next, err);
+        useSettingsStore.setState({ hotkeyError: String(err) });
       }
     }
   }

@@ -9,7 +9,7 @@ import { useSettingsStore } from "@/lib/stores/settings-store";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const DEFAULT_HOTKEY = "CmdOrControl+Shift+F";
+const DEFAULT_HOTKEY = "CmdOrControl+Alt+F";
 
 /** Convert a Tauri hotkey string like "CmdOrControl+Shift+F" to a readable glyph. */
 function formatHotkey(key: string): string {
@@ -128,9 +128,11 @@ export function SettingsPage() {
     theme,
     autostart: autostartEnabled,
     globalHotkey,
+    hotkeyError,
     setTheme,
     setAutostart,
     setGlobalHotkey,
+    clearHotkeyError,
     resetOnboarding,
   } = useSettingsStore();
 
@@ -157,8 +159,10 @@ export function SettingsPage() {
       />
       <GlobalHotkeySection
         hotkey={currentHotkey}
+        hotkeyError={hotkeyError}
         onHotkeyChange={(key) => setGlobalHotkey(key)}
         onReset={() => setGlobalHotkey(DEFAULT_HOTKEY)}
+        onDismissError={clearHotkeyError}
       />
 
       <OnboardingSection
@@ -293,11 +297,19 @@ function AutostartSection({ enabled, onToggle }: AutostartSectionProps) {
 
 interface GlobalHotkeySectionProps {
   hotkey: string;
+  hotkeyError: string | null;
   onHotkeyChange: (key: string) => void;
   onReset: () => void;
+  onDismissError: () => void;
 }
 
-function GlobalHotkeySection({ hotkey, onHotkeyChange, onReset }: GlobalHotkeySectionProps) {
+function GlobalHotkeySection({
+  hotkey,
+  hotkeyError,
+  onHotkeyChange,
+  onReset,
+  onDismissError,
+}: GlobalHotkeySectionProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -319,6 +331,21 @@ function GlobalHotkeySection({ hotkey, onHotkeyChange, onReset }: GlobalHotkeySe
             </Button>
           </div>
         </div>
+        {hotkeyError !== null && (
+          <div className="flex items-start justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
+            <p className="text-xs text-destructive">
+              Couldn&apos;t register this shortcut: {hotkeyError}. Try another combo.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDismissError}
+              className="h-auto p-0 text-xs text-destructive hover:text-destructive shrink-0"
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           Click the box then press your desired key combo. Escape cancels.
         </p>

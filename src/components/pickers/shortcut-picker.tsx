@@ -1,5 +1,6 @@
 import { RefreshCw, TriangleAlert, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { shortcuts } from "@/lib/os";
 
@@ -124,14 +125,33 @@ export function ShortcutPicker({ value, onChange, disabled }: ShortcutPickerProp
         </button>
       </div>
 
-      {error && (
-        <p className="flex items-center gap-1.5 mt-1.5 text-xs text-destructive">
-          <TriangleAlert className="size-3.5 shrink-0" />
-          {error}
-        </p>
+      {open && (error !== null || filtered.length === 0) && (
+        <div
+          className={cn(
+            "absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md",
+            "px-3 py-3 space-y-2",
+          )}
+        >
+          <p className="text-sm text-muted-foreground">
+            No Shortcuts found. Create one in Shortcuts.app first.
+          </p>
+          {error !== null && (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <TriangleAlert className="size-3.5 shrink-0" />
+              {error}
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void shortcuts.openShortcutsApp()}
+          >
+            Open Shortcuts app
+          </Button>
+        </div>
       )}
 
-      {open && filtered.length > 0 && (
+      {open && error === null && filtered.length > 0 && (
         <ul
           id={listboxId}
           role="listbox"
