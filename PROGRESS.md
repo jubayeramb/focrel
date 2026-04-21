@@ -4,9 +4,9 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Week 2 — Context CRUD (Week 1 code complete; only user-gated smoke test + icons remain)
-**Current task:** Dispatch Week 2 agents — context editor form, pickers (wallpaper/music/shortcut/app/color/icon), contexts list page.
-**Next action:** Launch 3 parallel agents (Pickers, Editor, List). Agents receive the Week 2 picker-prop contract so they can develop in isolation.
+**Current phase:** Week 2 done → Week 3 — Tasks
+**Current task:** Dispatch Week 3 agents — per-context task list UI with drag-reorder, CRUD, keyboard shortcuts, filters.
+**Next action:** Break Week 3 into 2 parallel tracks — Track I (task list component + CRUD + keyboard), Track J (drag-reorder via dnd-kit + due-date/priority pickers + filters).
 
 ---
 
@@ -117,36 +117,52 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 ```
 
 ### Track F — Pickers (src/components/pickers/*)
-- [ ] **F1** `wallpaper-picker.tsx` — file-open dialog via `@tauri-apps/plugin-dialog` filtered to images; shows thumbnail + path
-- [ ] **F2** `music-picker.tsx` — file-open dialog filtered to audio; shows filename
-- [ ] **F3** `shortcut-picker.tsx` — calls `shortcuts.listShortcuts()`, select-like combobox; allows typed custom name
-- [ ] **F4** `app-picker.tsx` — calls `apps.listRunningApps()`, multi-select checklist with search filter
-- [ ] **F5** `color-picker.tsx` — preset swatches (8 tailwind-ish hues) + hex input
-- [ ] **F6** `icon-picker.tsx` — grid of ~24 curated lucide icons (Brain, Coffee, Focus, Target, Book, …)
+- [x] **F1** `wallpaper-picker.tsx` — file-open dialog via `@tauri-apps/plugin-dialog` filtered to images; shows thumbnail + path
+- [x] **F2** `music-picker.tsx` — file-open dialog filtered to audio; shows filename
+- [x] **F3** `shortcut-picker.tsx` — calls `shortcuts.listShortcuts()`, select-like combobox; allows typed custom name
+- [x] **F4** `app-picker.tsx` — calls `apps.listRunningApps()`, multi-select checklist with search filter
+- [x] **F5** `color-picker.tsx` — preset swatches (8 tailwind-ish hues) + hex input
+- [x] **F6** `icon-picker.tsx` — grid of ~24 curated lucide icons (Brain, Coffee, Focus, Target, Book, …)
 
 ### Track G — Context editor form (src/routes/contexts/editor.tsx)
-- [ ] **G1** Route loader fetches context by id (edit mode) from `contextsRepo.get`
-- [ ] **G2** Form state via local `useState` or a simple form hook; no heavy form lib
-- [ ] **G3** Identity section: name, description, color (F5), icon (F6)
-- [ ] **G4** Environment section: wallpaper (F1), music (F2), shortcut (F3), revertShortcut (F3 again)
-- [ ] **G5** Behavior section: default duration minutes, appsToQuit (F4)
-- [ ] **G6** Save → `contextStore.create/update`; Cancel → back to /contexts
-- [ ] **G7** Keyboard shortcuts: `cmd+enter` save, `esc` cancel
-- [ ] **G8** Validation: non-empty name, valid hex color; inline errors
+- [x] **G1** Route loader fetches context by id (edit mode) from `contextsRepo.get`
+- [x] **G2** Form state via local `useState` or a simple form hook; no heavy form lib
+- [x] **G3** Identity section: name, description, color (F5), icon (F6)
+- [x] **G4** Environment section: wallpaper (F1), music (F2), shortcut (F3), revertShortcut (F3 again)
+- [x] **G5** Behavior section: default duration minutes, appsToQuit (F4)
+- [x] **G6** Save → `contextStore.create/update`; Cancel → back to /contexts
+- [x] **G7** Keyboard shortcuts: `cmd+enter` save, `esc` cancel
+- [x] **G8** Validation: non-empty name, valid hex color; inline errors
 
 ### Track H — Contexts list + dashboard (src/routes/contexts/index.tsx + home.tsx)
-- [ ] **H1** List page: loads `useContextStore.contexts`, cards with icon/name/color/duration
-- [ ] **H2** Row actions: Edit, Archive, Unarchive, Delete (with confirm)
-- [ ] **H3** Toggle "show archived"
-- [ ] **H4** Empty state with "Create first context" button
-- [ ] **H5** Home page: same grid but clicking a context navigates to `/session?contextId=…`
+- [x] **H1** List page: loads `useContextStore.contexts`, cards with icon/name/color/duration
+- [x] **H2** Row actions: Edit, Archive, Unarchive, Delete (with confirm)
+- [x] **H3** Toggle "show archived"
+- [x] **H4** Empty state with "Create first context" button
+- [x] **H5** Home page: same grid but clicking a context navigates to `/session?contextId=…`
 
 ## Week 3 — Tasks
-- [ ] Per-context task list UI with drag-reorder (dnd-kit)
-- [ ] Add/edit/complete/delete tasks
-- [ ] Keyboard shortcuts (enter to add, cmd+k quick add, arrow nav)
-- [ ] Due date + priority pickers
-- [ ] Filters (done/open/all)
+
+### Track I — Task list UI + CRUD + keyboard
+- [ ] **I1** `src/lib/stores/task-store.ts` — Zustand store backed by `tasksRepo`; `loadByContext(contextId)`, `create`, `update`, `complete`, `uncomplete`, `remove`, `reorder(contextId, orderedIds)`
+- [ ] **I2** `src/components/task-list.tsx` — presentational list of tasks for a given context; renders a `<TaskRow>` per task
+- [ ] **I3** `src/components/task-row.tsx` — single row: checkbox (status toggle), title (editable inline on double-click or focus), priority dot, due-date badge, delete button on hover
+- [ ] **I4** `src/components/task-add-input.tsx` — "Add task" input pinned to top; `enter` adds, focus-ring visible
+- [ ] **I5** Keyboard shortcuts inside the list: `enter` to add, `cmd+k` to focus add input, `arrow up/down` to navigate rows, `space` to toggle completion, `backspace` on empty title to delete (with confirm)
+- [ ] **I6** Wire `TaskList` into `src/routes/contexts/editor.tsx` as a right-side section (below Behavior) — visible only in edit mode, since new contexts have no id yet
+
+### Track J — Drag-reorder + pickers + filters
+- [ ] **J1** Add `@dnd-kit/core` + `@dnd-kit/sortable` to package.json; install
+- [ ] **J2** `src/components/pickers/due-date-picker.tsx` — BasicPicker<number | null> (unix millis); native `<input type="datetime-local">` wrapped with clear button
+- [ ] **J3** `src/components/pickers/priority-picker.tsx` — BasicPicker<number> (0..3); 4 pill buttons (None / Low / Normal / High)
+- [ ] **J4** Wrap `TaskList` (from I2) with `DndContext` + `SortableContext`; reorder calls `taskStore.reorder(contextId, orderedIds)` via tasksRepo; optimistic update on drop
+- [ ] **J5** `src/components/task-filters.tsx` — segmented control: All / Open / Done; state lifted to parent (TaskList container)
+- [ ] **J6** Ensure drag-reorder + filter + sort play nicely: filter hides rows but preserves underlying order; dragging a visible row across filter boundaries is allowed
+
+### Week 3 — Integration checkpoint
+- [ ] `pnpm typecheck` green
+- [ ] `pnpm build` green
+- [ ] Two scoped commits: `feat(tasks): task list store + rows + CRUD + keyboard`, `feat(tasks): drag-reorder + due-date/priority pickers + filters`
 
 ## Week 4 — Session Engine
 - [ ] Pre-session task picker (choose which tasks to tackle)
@@ -190,3 +206,8 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 2026-04-21 — D — UI shell complete (D1–D9): src/lib/utils.ts, src/lib/theme.ts, src/components/ui/{button,card,input,label,textarea}.tsx, src/components/titlebar.tsx, src/routes/{root,home,session,settings}.tsx, src/routes/contexts/{index,editor}.tsx, src/router.tsx, src/App.tsx, src/main.tsx; also fixed vite.config.ts type errors + added @types/node; typecheck green, vite build green.
 2026-04-21 — E — OS wrappers (wallpaper/audio/shortcuts/apps/snapshot) + Zustand stores (settings/context/session state machine) + init.ts; src/lib/* typecheck clean.
 2026-04-21 — CTO — Integration: wired runStartupHooks() + initSystemTheme() into main.tsx; `pnpm typecheck` fully green; 6 scoped commits (scaffold, rust, db, ui, stores+os, app).
+2026-04-21 — F — pickers complete: src/components/pickers/{wallpaper,music,shortcut,app,color,icon}-picker.tsx
+2026-04-21 — G — context editor form complete: src/routes/contexts/editor.tsx wired to all six pickers; JSON serialization boundary for appsToQuit/blockedSites; cmd+enter save, esc cancel; archive button in edit mode.
+2026-04-21 — H — contexts list + home grid complete: src/routes/contexts/index.tsx, src/routes/home.tsx, src/components/context-card.tsx
+2026-04-21 — CTO — Week 2 reconcile: replaced H's inline renderIcon fallback in context-card.tsx with the import from pickers/icon-picker.tsx (which F shipped). Typecheck + build green. Committed as 2 scopes: feat(pickers), feat(contexts).
+2026-04-21 — G — context editor form complete: src/routes/contexts/editor.tsx
