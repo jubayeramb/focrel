@@ -5,6 +5,7 @@ import {
   createRoute,
   createRouter,
   useNavigate,
+  useRouterState,
 } from "@tanstack/react-router";
 import { ContextEditorPage } from "@/routes/contexts/editor";
 import { ContextHistoryPage } from "@/routes/contexts/history";
@@ -21,8 +22,8 @@ import { useSettingsStore } from "@/lib/stores/settings-store";
 function OnboardingGate() {
   const hydrated = useSettingsStore((s) => s.hydrated);
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  const routerState = useRouterState();
   const navigate = useNavigate();
-  const hasRedirectedRef = React.useRef(false);
 
   React.useEffect(() => {
     // Wait until settings have been read from plugin-store. Otherwise the
@@ -30,13 +31,13 @@ function OnboardingGate() {
     // resolves, re-prompting users who've already completed onboarding.
     if (!hydrated) return;
     if (onboardingCompleted) return;
-    if (hasRedirectedRef.current) return;
-    hasRedirectedRef.current = true;
-    // Redirect ONCE per session. After the initial nudge, users can click
-    // sidebar items to explore the app freely — the onboarding replay
-    // button in Settings is always available.
+    if (routerState.location.pathname === "/onboarding") return;
+    // Keep users on /onboarding until they finish. The sidebar isn't
+    // rendered there, so this redirect is the safety net for any
+    // programmatic navigation (e.g. hotkey, deep link) that could
+    // bypass the full-bleed onboarding flow.
     void navigate({ to: "/onboarding" });
-  }, [hydrated, onboardingCompleted, navigate]);
+  }, [hydrated, onboardingCompleted, routerState.location.pathname, navigate]);
 
   return null;
 }
