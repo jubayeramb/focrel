@@ -10,6 +10,13 @@ rust-version = "1.77.2"
 name = "focrel_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# Binary name controls what macOS shows on the dock/Activity Monitor
+# when running from `cargo run` / `tauri dev`. Bundled builds use
+# productName from tauri.conf.json instead.
+[[bin]]
+name = "Focrel"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
