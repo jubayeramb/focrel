@@ -1,5 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Clock, Home, LayoutGrid, Play, Plus, Settings } from "lucide-react";
+import logoUrl from "@focrel/brand/assets/logo.svg";
 import { useContextStore } from "@/lib/stores/context-store";
 import { useSessionStore } from "@/lib/stores/session-store";
 import { useSessionTimer } from "@/lib/hooks/use-session-timer";
@@ -85,18 +86,9 @@ export function Sidebar() {
       className="fixed top-8 left-0 bottom-0 w-60 border-r border-border flex flex-col z-40"
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >
-      {/* Wordmark */}
+      {/* Wordmark — real app logo + product name */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-2 select-none">
-        <span
-          className={cn(
-            "flex size-6 items-center justify-center rounded-md",
-            "bg-gradient-to-br from-violet-500 via-indigo-600 to-slate-900",
-            "text-[11px] font-semibold text-white shadow-sm",
-          )}
-          aria-hidden
-        >
-          F
-        </span>
+        <img src={logoUrl} alt="" aria-hidden className="size-6 rounded-md" />
         <span className="text-base font-semibold tracking-tight">Focrel</span>
       </div>
 

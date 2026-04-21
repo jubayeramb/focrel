@@ -161,44 +161,81 @@ export function ActiveSessionView({
     : formatMmSs(remainingSeconds);
 
   if (miniMode) {
+    const miniColor = context?.color ?? "#7c3aed";
     return (
-      <div className="flex flex-col gap-3 h-full">
-        <div className="flex items-center justify-between">
+      <div className="flex h-full flex-col gap-3">
+        {/* Header: context + controls */}
+        <div className="flex items-center gap-2">
           <span
-            className={cn(
-              "text-3xl font-thin tabular-nums tracking-tight",
-              isOvertime ? "text-amber-500" : "text-foreground",
-            )}
-          >
-            {timerDisplay}
+            className="size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: miniColor }}
+            aria-hidden
+          />
+          <span className="flex-1 truncate text-xs font-medium text-foreground">
+            {context?.name ?? "Session"}
           </span>
           <Button
             type="button"
             variant="ghost"
             size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
             onClick={() => void toggleMiniMode()}
             aria-label="Exit mini mode"
+            title="Exit mini mode"
           >
-            <Maximize2 className="size-4" />
+            <Maximize2 className="size-3.5" />
           </Button>
-        </div>
-        <div className="h-1 rounded-full bg-muted overflow-hidden">
-          <div
+          <button
+            type="button"
+            onClick={() => onRequestEnd(false)}
             className={cn(
-              "h-full rounded-full transition-all duration-1000",
-              isOvertime ? "bg-amber-500" : "bg-primary",
+              "rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium",
+              "text-destructive transition-colors",
+              "hover:bg-destructive hover:text-destructive-foreground",
             )}
-            style={{
-              width: `${progress01 * 100}%`,
-              ...(!isOvertime && { backgroundColor: "var(--accent-ctx, hsl(var(--primary)))" }),
-            }}
-          />
+          >
+            End
+          </button>
         </div>
+
+        {/* Timer + progress */}
+        <div className="flex flex-col items-center gap-2 py-1">
+          <span
+            className={cn(
+              "font-mono text-5xl font-light tabular-nums tracking-tighter select-none",
+              isOvertime ? "text-amber-500" : "text-foreground",
+            )}
+          >
+            {timerDisplay}
+          </span>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-1000",
+                isOvertime ? "bg-amber-500" : "bg-primary",
+              )}
+              style={{
+                width: `${progress01 * 100}%`,
+                ...(!isOvertime && { backgroundColor: "var(--accent-ctx, hsl(var(--primary)))" }),
+              }}
+            />
+          </div>
+          {isOvertime && (
+            <p className="text-[10px] font-medium text-amber-500">Overtime</p>
+          )}
+        </div>
+
+        {/* Tasks (compact, scrollable) */}
         <div className="flex-1 overflow-y-auto app-scroll">
+          {sessionTasks.length > 0 && (
+            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Tasks · {completedCount}/{sessionTasks.length}
+            </div>
+          )}
           {sessionTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No tasks.</p>
+            <p className="px-1 py-2 text-xs text-muted-foreground">No tasks.</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {sessionTasks.map((task) => (
                 <li key={task.id}>
                   <TaskRow task={task} onDelete={() => {}} />
@@ -207,8 +244,10 @@ export function ActiveSessionView({
             </ul>
           )}
         </div>
+
+        {/* Music strip */}
         {hasMusicPath && (
-          <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1">
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5">
             <Button
               type="button"
               variant="ghost"
@@ -219,7 +258,7 @@ export function ActiveSessionView({
             >
               {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
             </Button>
-            <Music className="size-3.5 text-muted-foreground shrink-0" />
+            <Music className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               type="range"
               min={0}
@@ -227,17 +266,14 @@ export function ActiveSessionView({
               step={0.01}
               value={volume}
               onChange={(e) => void handleVolumeChange(e)}
-              className="flex-1 accent-primary h-1 rounded-full cursor-pointer min-w-0"
+              className="h-1 min-w-0 flex-1 cursor-pointer rounded-full accent-primary"
               aria-label="Volume"
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className={cn(
-                "size-7",
-                loopEnabled ? "text-primary" : "text-muted-foreground",
-              )}
+              className={cn("size-7", loopEnabled ? "text-primary" : "text-muted-foreground")}
               onClick={() => void toggleLoop()}
               aria-label={loopEnabled ? "Disable loop" : "Enable loop"}
             >
@@ -255,15 +291,6 @@ export function ActiveSessionView({
             </Button>
           </div>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          onClick={() => onRequestEnd(false)}
-        >
-          End session
-        </Button>
       </div>
     );
   }

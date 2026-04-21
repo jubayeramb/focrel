@@ -1,4 +1,5 @@
 import { Circle, Home, List, Music, Play, Settings, Timer } from "lucide-react";
+import logoUrl from "@focrel/brand/assets/logo.svg";
 import { cn } from "@/lib/cn";
 
 /**
@@ -28,9 +29,7 @@ export function AppWindowMock({ className }: { className?: string }) {
         {/* sidebar */}
         <aside className="flex flex-col gap-1 border-r border-border/70 bg-muted/20 p-3">
           <div className="mb-3 flex items-center gap-2 px-2 text-xs font-semibold text-foreground">
-            <span className="flex size-6 items-center justify-center rounded-md bg-foreground text-background">
-              F
-            </span>
+            <img src={logoUrl} alt="" aria-hidden className="size-6 rounded-md" />
             Focrel
           </div>
           <NavRow icon={<Home className="size-4" />} label="Home" active />
