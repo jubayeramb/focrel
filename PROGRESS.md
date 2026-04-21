@@ -4,10 +4,10 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Post-MVP sprint — Waves 1 + 2 shipped ✓. Wave 3 kickoff next.
-**Current task:** Fix onboarding-race bug + UI polish pass (scrollbar + professional feel), then dispatch Wave 3 agents (analytics, tray, scheduler).
-**Next action:** Apply onboarding `hydrated` flag + global scrollbar CSS; commit as `fix(onboarding)` + `style(polish)`. Then launch 3 parallel agents for Wave 3.
-**Post-MVP plan:** `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md` (three waves + new 12a polish + 12b onboarding race).
+**Current phase:** 🎉 Post-MVP sprint complete — Waves 1 + 2 + 3 all shipped. Ready for user smoke-test of the full v0.1 surface.
+**Current task:** Hand off to user for `pnpm tauri dev` validation.
+**Next action:** User restart with the new tray-icon + image-png Cargo features; verify (1) sidebar nav works, (2) home page shows analytics, (3) tray icon appears in menubar with working start/end menu, (4) schedule a context 1 min ahead and confirm auto-start, (5) close and reopen during a session — it resumes.
+**Post-MVP plan:** `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md` — all items shipped except the explicitly-deferred user-gated ones (real icons, signing, Sparkle, menu-bar-only mode, LaunchAgent scheduler).
 
 ---
 
@@ -257,9 +257,9 @@ Manual tests (user-gated — must run on the user's Mac):
 ### Wave 3 — Polish + analytics + tray + scheduled sessions
 - [x] **#12a** UI polish pass — scoped app scrollbar; dark-mode token tightening; SF Pro Display headings; sidebar tint token
 - [x] **#12b** Onboarding race fix — `hydrated` flag + gate defers redirect until hydrate resolves
-- [ ] **#10** Analytics home — `src/lib/db/repos/analytics.ts`, stat cards, 14-day bar chart, per-context breakdown
-- [ ] **#11** System tray — `src-tauri/src/tray.rs`, dynamic label with `{ctx} · MM:SS` during active session, submenu Start-by-context, End/Open/Quit
-- [ ] **#13** In-app scheduler — `0002_add_schedule.sql` migration + per-context `schedule_*` columns + `src/lib/scheduler.ts` tokio-less setInterval-based fire-once-per-day-per-context watcher
+- [x] **#10** Analytics home — `src/lib/db/repos/analytics.ts`, stat cards, 14-day bar chart, per-context breakdown, quick-start grid at bottom
+- [x] **#11** System tray — `src-tauri/src/tray.rs`, `core:tray:default` capability, dynamic label `{ctx} · MM:SS` via JS-side ticker, submenu Start-by-context, End/Open/Quit; Cargo features tray-icon + image-png
+- [x] **#13** In-app scheduler — `0002_add_schedule.sql` migration + per-context `schedule_*` columns + `src/lib/scheduler.ts` 30s-interval watcher with per-day firedToday guard
 
 ## v1.1 — Deferred
 - [ ] Network Extension content filter (Swift sidecar) for site blocking
@@ -302,3 +302,7 @@ Manual tests (user-gated — must run on the user's Mac):
 2026-04-21 — CTO — Wave 2 close-out: typecheck + build + cargo check green. 2 scoped commits (feat(ui) sidebar + feat(session) resume). Plan extended with 12a UI polish + 12b onboarding-race fix per user feedback 2026-04-21.
 2026-04-21 — CTO — 12b (onboarding race): settings-store gained `hydrated: boolean`; OnboardingGate defers redirect until hydrated. fix(onboarding) commit.
 2026-04-21 — CTO — 12a (polish pass): scoped scrollbar via .app-scroll on main content (root scroll locked); dark-mode vars tightened (card, border, input, destructive); new --sidebar token; SF Pro Display on headings with -0.015em letter-spacing. style(polish) commit.
+2026-04-21 — W3-Analytics — dashboard home + aggregation repo: src/lib/db/repos/analytics.ts (todayStats/weekStats/streakDays/dailyMinutes/byContext), src/components/analytics/{stat-card,daily-bars}.tsx, src/routes/home.tsx (rewritten).
+2026-04-21 — W3-Scheduler — schema 0002 + editor schedule section + runtime: 0002_add_schedule.sql, db/client migration runner refactor (removed early return), schema.ts + repos/contexts.ts columns, editor.tsx Schedule card (toggle + time + day pills + auto-start), src/lib/scheduler.ts (30s check with firedToday guard).
+2026-04-21 — W3-Tray — menubar + dynamic menu: src-tauri/{Cargo.toml +tray-icon+image-png, tray.rs, commands/tray_cmds.rs, lib.rs (mod tray + 3 commands), capabilities +core:tray:default, icons/tray-icon.png}, src/lib/tray-bridge.ts (store-driven label ticker + event dispatch), src/lib/init.ts (initTrayBridge + initScheduler wired).
+2026-04-21 — CTO — Wave 3 close-out: typecheck + build + cargo check all green. 3 scoped commits (feat(scheduler), feat(analytics), feat(tray)). Post-MVP sprint complete — 12 of 12 plan items shipped across 23 commits since today's kickoff.
