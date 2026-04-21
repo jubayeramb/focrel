@@ -48,12 +48,27 @@ export async function runMigrations(): Promise<void> {
   );
 
   if (rows2.length === 0) {
+    // Some early builds added the columns but failed to record the
+    // _migrations marker row. Probe the live schema and skip any
+    // ALTER that would re-add an existing column; this makes the
+    // migration safely re-runnable against already-upgraded DBs.
+    const existingCols = await db.select<Array<{ name: string }>>(
+      "PRAGMA table_info(contexts)",
+    );
+    const colSet = new Set(existingCols.map((c) => c.name));
+
     const statements2 = migration2
       .split(";")
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
     for (const statement of statements2) {
+      const addColMatch = statement.match(
+        /ALTER\s+TABLE\s+\w+\s+ADD\s+COLUMN\s+(\w+)/i,
+      );
+      if (addColMatch && colSet.has(addColMatch[1])) {
+        continue;
+      }
       await db.execute(statement);
     }
 
