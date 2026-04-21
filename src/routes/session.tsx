@@ -1,90 +1,169 @@
-import { Music, Pause, Play, Square } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { ActiveSessionView } from "@/components/session/active-session-view";
+import { BreakPrompt } from "@/components/session/break-prompt";
+import {
+  EndSessionDialog,
+  type EndReason,
+} from "@/components/session/end-session-dialog";
+import { PreSessionPanel } from "@/components/session/pre-session-panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useContextStore } from "@/lib/stores/context-store";
+import { useSessionStore } from "@/lib/stores/session-store";
 
 interface SessionPageProps {
   contextId?: string;
   onEndSession: () => void;
 }
 
-export function SessionPage({ contextId: _contextId, onEndSession }: SessionPageProps) {
-  return (
-    <div className="flex flex-col items-center gap-8">
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">
-          Deep Work
+export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
+  const sessionStore = useSessionStore();
+  const { state } = sessionStore;
+  const getById = useContextStore((s) => s.getById);
+  const contexts = useContextStore((s) => s.contexts);
+
+  const [breakOpen, setBreakOpen] = useState(false);
+  const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [endInitialReason, setEndInitialReason] = useState<EndReason>("interrupted");
+  const [extensionMinutes, setExtensionMinutes] = useState(0);
+
+  if (!contextId) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16">
+        <p className="text-sm text-muted-foreground">No context selected.</p>
+        <Button variant="outline" asChild>
+          <Link to="/">Go home</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  function handleEndRequest(autoTriggered: boolean) {
+    if (autoTriggered) {
+      setBreakOpen(true);
+    } else {
+      setEndInitialReason("interrupted");
+      setEndDialogOpen(true);
+    }
+  }
+
+  async function handleEndDialogSave(reason: EndReason, notes?: string) {
+    setEndDialogOpen(false);
+    setBreakOpen(false);
+    setExtensionMinutes(0);
+    await sessionStore.end(reason, notes);
+    onEndSession();
+  }
+
+  function handleBreakExtend() {
+    setExtensionMinutes((m) => m + 10);
+    setBreakOpen(false);
+  }
+
+  async function handleBreakTake() {
+    setBreakOpen(false);
+    await sessionStore.end("completed");
+    const breakCtx = contexts.find((c) => c.name === "Break" && c.archivedAt == null);
+    if (breakCtx) {
+      await sessionStore.start({
+        contextId: breakCtx.id,
+        plannedDurationMinutes: 5,
+        taskIds: [],
+      });
+    } else {
+      onEndSession();
+    }
+  }
+
+  function handleBreakEndInstead() {
+    setBreakOpen(false);
+    setEndInitialReason("completed");
+    setEndDialogOpen(true);
+  }
+
+  if (state.phase === "active" && state.contextId !== contextId) {
+    const otherContext = getById(state.contextId);
+    const otherName = otherContext?.name ?? state.contextId;
+    return (
+      <div className="flex flex-col items-center gap-4 py-16">
+        <p className="text-sm text-muted-foreground text-center">
+          A session is already running for <span className="font-medium">{otherName}</span>.
+          End it to start a new one.
         </p>
-        <div className="text-8xl font-thin tabular-nums tracking-tighter text-foreground select-none">
-          25:00
+        <Button variant="outline" onClick={() => handleEndRequest(false)}>
+          End running session
+        </Button>
+        <EndSessionDialog
+          open={endDialogOpen}
+          initialReason={endInitialReason}
+          onSave={handleEndDialogSave}
+          onCancel={() => setEndDialogOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {state.phase === "recovered" && (
+        <div className="flex items-center justify-between rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Recovered a stale session. Original wallpaper restored.
+          </p>
+          <button
+            type="button"
+            onClick={sessionStore.dismissRecoveryToast}
+            className="text-sm text-muted-foreground hover:text-foreground ml-4 shrink-0"
+          >
+            Dismiss
+          </button>
         </div>
-        <p className="text-sm text-muted-foreground mt-3">Session in progress</p>
-      </div>
+      )}
 
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" aria-label="Pause session">
-          <Pause className="size-5" />
-        </Button>
-        <Button
-          variant="destructive"
-          size="lg"
-          className="px-8"
-          onClick={onEndSession}
-        >
-          <Square className="size-4" />
-          End session
-        </Button>
-      </div>
+      {(state.phase === "idle" || state.phase === "recovered") && (
+        <PreSessionPanel
+          contextId={contextId}
+          onStarted={() => {}}
+          onCancel={onEndSession}
+        />
+      )}
 
-      <div className="w-full max-w-md space-y-4">
-        <TaskListPlaceholder />
-        <MusicControlsPlaceholder />
-      </div>
+      {state.phase === "starting" && (
+        <div className="flex items-center justify-center gap-3 py-16">
+          <span className="size-5 rounded-full border-2 border-muted border-t-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Starting session…</p>
+        </div>
+      )}
+
+      {state.phase === "active" && state.contextId === contextId && (
+        <ActiveSessionView
+          sessionId={state.sessionId}
+          contextId={state.contextId}
+          startedAt={state.startedAt}
+          plannedDurationMinutes={state.plannedDurationMinutes + extensionMinutes}
+          taskIds={state.taskIds}
+          onRequestEnd={handleEndRequest}
+        />
+      )}
+
+      {state.phase === "ending" && (
+        <div className="flex items-center justify-center py-16">
+          <p className="text-sm text-muted-foreground">Ending session…</p>
+        </div>
+      )}
+
+      <BreakPrompt
+        open={breakOpen}
+        onTakeBreak={() => void handleBreakTake()}
+        onExtend={handleBreakExtend}
+        onEndSession={handleBreakEndInstead}
+      />
+      <EndSessionDialog
+        open={endDialogOpen}
+        initialReason={endInitialReason}
+        onSave={handleEndDialogSave}
+        onCancel={() => setEndDialogOpen(false)}
+      />
     </div>
-  );
-}
-
-function TaskListPlaceholder() {
-  return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-          Tasks for this session
-        </p>
-        {["Write architecture doc", "Review PR #42", "Update tests"].map((task) => (
-          <div key={task} className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded border border-muted-foreground/30 shrink-0" />
-            <span className="text-sm text-foreground">{task}</span>
-          </div>
-        ))}
-        <div className="flex items-center gap-3 opacity-40">
-          <div className="w-4 h-4 rounded border border-muted-foreground/30 shrink-0" />
-          <span className="text-sm line-through text-muted-foreground">Completed task</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function MusicControlsPlaceholder() {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-md bg-muted flex items-center justify-center shrink-0">
-            <Music className="size-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">Lo-fi Hip Hop Radio</p>
-            <p className="text-xs text-muted-foreground truncate">Ambient loop</p>
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Play music">
-            <Play className="size-4" />
-          </Button>
-        </div>
-        <div className="mt-3 h-1 bg-muted rounded-full">
-          <div className="h-full w-2/5 bg-primary rounded-full" />
-        </div>
-      </CardContent>
-    </Card>
   );
 }

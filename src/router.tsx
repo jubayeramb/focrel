@@ -5,6 +5,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { ContextEditorPage } from "@/routes/contexts/editor";
+import { ContextHistoryPage } from "@/routes/contexts/history";
 import { ContextsPage } from "@/routes/contexts/index";
 import { HomePage } from "@/routes/home";
 import { RootLayout } from "@/routes/root";
@@ -66,6 +67,9 @@ const contextsRoute = createRoute({
         onNavigateToEdit={(id) => {
           void navigate({ to: "/contexts/$id/edit", params: { id } });
         }}
+        onNavigateToHistory={(id) => {
+          void navigate({ to: "/contexts/$id/history", params: { id } });
+        }}
       />
     );
   },
@@ -109,6 +113,16 @@ const contextsEditRoute = createRoute({
   },
 });
 
+const contextsHistoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/contexts/$id/history",
+  component: function ContextHistory() {
+    const { id } = contextsHistoryRoute.useParams();
+    const navigate = contextsHistoryRoute.useNavigate();
+    return <ContextHistoryPage contextId={id} onBack={() => void navigate({ to: "/contexts" })} />;
+  },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -121,6 +135,7 @@ const routeTree = rootRoute.addChildren([
   contextsRoute,
   contextsNewRoute,
   contextsEditRoute,
+  contextsHistoryRoute,
   settingsRoute,
 ]);
 

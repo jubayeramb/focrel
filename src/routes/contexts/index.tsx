@@ -8,9 +8,10 @@ import type { Context } from "@/lib/db";
 type ContextsPageProps = {
   onNavigateToNew: () => void;
   onNavigateToEdit: (id: string) => void;
+  onNavigateToHistory: (id: string) => void;
 };
 
-export function ContextsPage({ onNavigateToNew, onNavigateToEdit }: ContextsPageProps) {
+export function ContextsPage({ onNavigateToNew, onNavigateToEdit, onNavigateToHistory }: ContextsPageProps) {
   const { contexts, loading, load, archive, unarchive, remove } = useContextStore();
   const [showArchived, setShowArchived] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -67,6 +68,10 @@ export function ContextsPage({ onNavigateToNew, onNavigateToEdit }: ContextsPage
                     setOpenMenuId(null);
                     onNavigateToEdit(c.id);
                   }}
+                  onHistory={() => {
+                    setOpenMenuId(null);
+                    onNavigateToHistory(c.id);
+                  }}
                   onArchive={() => {
                     setOpenMenuId(null);
                     void archive(c.id);
@@ -115,6 +120,7 @@ type ContextMenuProps = {
   onToggle: () => void;
   onClose: () => void;
   onEdit: () => void;
+  onHistory: () => void;
   onArchive: () => void;
   onUnarchive: () => void;
   onDelete: () => void;
@@ -126,6 +132,7 @@ function ContextMenu({
   onToggle,
   onClose,
   onEdit,
+  onHistory,
   onArchive,
   onUnarchive,
   onDelete,
@@ -167,6 +174,15 @@ function ContextMenu({
             }}
           >
             Edit
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 hover:bg-accent transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onHistory();
+            }}
+          >
+            History
           </button>
           {context.archivedAt == null ? (
             <button
