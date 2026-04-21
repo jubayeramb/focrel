@@ -1,9 +1,9 @@
 import * as React from "react";
 import { Bell, CheckCircle2, Layers, Music, Sparkles, Wand2 } from "lucide-react";
-import { open } from "@tauri-apps/plugin-shell";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { openShortcutsApp } from "@/lib/os/shortcuts";
 import { cn } from "@/lib/utils";
 
 type OnboardingPageProps = {
@@ -92,7 +92,7 @@ function StepPermissions({ onNext }: { onNext: () => void }) {
                 variant="outline"
                 size="sm"
                 className="self-start"
-                onClick={() => void open("shortcuts://")}
+                onClick={() => void openShortcutsApp()}
               >
                 Open Shortcuts app
               </Button>
