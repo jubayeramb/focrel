@@ -4,9 +4,10 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** 🎉 MVP code complete — Weeks 1–6 all shipped. Remaining items are user-gated (manual smoke tests, real icons, code-sign/notarize, Sparkle, screenshots).
-**Current task:** Hand off for user-gated verification and v0.1 ship prep.
-**Next action:** User runs `pnpm tauri dev` on a Mac to smoke-test the full flow: onboarding → create context → start session → wallpaper/music/shortcut fire → timer expiry → break prompt → end dialog → history. After that: real icons, code-sign, notarize, DMG + Sparkle.
+**Current phase:** Post-MVP sprint — Wave 1 shipped ✓. Wave 2 (sidebar + resume) in flight next.
+**Current task:** Dispatch Wave 2 agents — left sidebar layout replacing titlebar, resume-on-launch (add plannedDurationMinutes + taskIds to snapshot, differentiate resume vs crash).
+**Next action:** Launch 2 parallel agents for Wave 2. After green + smoke-test, dispatch Wave 3 (analytics home + system tray + in-app scheduler).
+**Post-MVP plan:** `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md` (three waves, all approved).
 
 ---
 
@@ -235,9 +236,34 @@ Manual tests (user-gated — must run on the user's Mac):
 - [ ] Real icons in `src-tauri/icons/` (replace placeholders)
 - [ ] Screenshots in README
 
+## Post-MVP Sprint — Waves 1/2/3
+
+(Plan: `/Users/jubayer/.claude/plans/scalable-noodling-lerdorf.md`)
+
+### Wave 1 — Bugs + quick UX (7 items) ✓ SHIPPED
+- [x] **#1** Music stop → play replays from start (active-session-view)
+- [x] **#2** App picker lists all installed apps via `plutil` plist scan (apps.rs, os/apps.ts, app-picker.tsx)
+- [x] **#3** ShortcutPicker empty-state + "Open Shortcuts app" button + editor Test-shortcut button
+- [x] **#4** Pre-session task add via TaskAddInput + × delete on each row
+- [x] **#5** Home context cards have inline "Start" quick-action button
+- [x] **#6** Dark-mode button contrast — added `text-foreground` to `outline` + `ghost` variants
+- [x] **#7** Hotkey default changed to `CmdOrControl+Alt+F`; registration errors surfaced in settings UI
+
+### Wave 2 — Sidebar layout + resume-on-launch
+- [ ] **#8** Left 240px sidebar (Home / Contexts / History / Settings + active-session pill) replacing titlebar; new `src/components/sidebar.tsx`, delete `titlebar.tsx`
+- [ ] **#8b** New global `/history` route listing sessions across all contexts
+- [ ] **#9** Snapshot extended with `plannedDurationMinutes` + `taskIds`; `checkForRecoveryOnLaunch` resumes sessions younger than `plannedDuration + 2h`, only reconciles as crash beyond that; root auto-navs to `/session` on resume
+
+### Wave 3 — Analytics + tray + scheduled sessions
+- [ ] **#10** Analytics home — `src/lib/db/repos/analytics.ts`, stat cards, 14-day bar chart, per-context breakdown
+- [ ] **#11** System tray — `src-tauri/src/tray.rs`, dynamic label with `{ctx} · MM:SS` during active session, submenu Start-by-context, End/Open/Quit
+- [ ] **#12** In-app scheduler — `0002_add_schedule.sql` migration + per-context `schedule_*` columns + `src/lib/scheduler.ts` tokio-less setInterval-based fire-once-per-day-per-context watcher
+
 ## v1.1 — Deferred
 - [ ] Network Extension content filter (Swift sidecar) for site blocking
 - [ ] Pricing/licensing plan
+- [ ] LaunchAgent-based schedule daemon (fires even when app is closed)
+- [ ] Real icons + Developer-ID sign + notarize + DMG + Sparkle
 
 ---
 
@@ -264,3 +290,8 @@ Manual tests (user-gated — must run on the user's Mac):
 2026-04-21 — M — onboarding + notifications + accent + README: src/routes/onboarding.tsx, src/lib/os/notifications.ts, src/lib/stores/settings-store.ts (+onboardingCompleted), src/lib/stores/session-store.ts (+notify hooks), src/lib/accent.ts, src/components/session/active-session-view.tsx (accent style), src/main.tsx (+initAccentSubscription), README.md.
 2026-04-21 — N — hotkey + autostart + settings UI + theme override: src/lib/os/{hotkey,autostart}.ts, src/lib/hotkey-bootstrap.ts, src/lib/hooks/use-hotkey-navigation.ts, src/lib/init.ts (+ hotkey init), src/lib/theme.ts (+applyTheme + settings subscribe), src/routes/root.tsx (hotkey listener), src/routes/settings.tsx (full form).
 2026-04-21 — CTO — Week 6 close-out + 🎉 MVP ship: added `resetOnboarding()` to settings-store; removed `as any` cast on navigate in settings.tsx; removed stale inline comments. Typecheck + build green. 2 scoped commits landed (feat(onboarding), feat(settings)). Weeks 1–6 all shipped in 20 total commits on main. Remaining items are strictly user-gated (Mac smoke tests, signing/notarize, real icons, Sparkle, screenshots).
+2026-04-21 — FIX — post-MVP dev-boot hardening: icon.icns regenerated (8-byte stub crashed NSImage), session-store surfaces lastError, Button defaults to type=button, asChild usage removed, Contexts nav button added to titlebar. Wallpaper get() made non-fatal (osascript fails on macOS 14+). Rust `open_shortcuts_app` command replaces shell.open('shortcuts://'). Asset protocol enabled for WallpaperPicker previews. Stable-ref fix in task-store.tasksFor prevents infinite render loop in editor.
+2026-04-21 — W1A — installed-apps picker: src-tauri/src/commands/apps.rs (list_installed_apps via plutil), src-tauri/src/lib.rs (registered), src/lib/os/apps.ts, src/components/pickers/app-picker.tsx.
+2026-04-21 — W1B — music replay + shortcut picker empty state + button contrast + hotkey default+error: src/components/session/active-session-view.tsx, src/components/pickers/shortcut-picker.tsx, src/components/ui/button.tsx, src/lib/hotkey-bootstrap.ts, src/lib/stores/settings-store.ts (+hotkeyError), src/routes/settings.tsx.
+2026-04-21 — W1C — test-shortcut button + pre-session task add/remove + home card quick-start: src/routes/contexts/editor.tsx, src/components/session/pre-session-panel.tsx, src/routes/home.tsx, src/router.tsx.
+2026-04-21 — CTO — Wave 1 close-out: typecheck + build + cargo check green. 3 scoped commits (feat(apps), fix(ui), feat(session,tasks)). Plan approved, Waves 2+3 queued.
