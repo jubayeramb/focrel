@@ -12,6 +12,9 @@ type TrayContext = { id: string; name: string };
 let musicIsPlaying = false;
 let musicCurrentPath: string | null = null;
 let musicLoopForever = true;
+// Track whether the Rust sink is alive — after Stop we need a fresh Play,
+// after Pause we only Resume so the track continues from where it paused.
+let musicSinkAlive = false;
 
 function logInvoke(cmd: string, args: Record<string, unknown>) {
   invoke(cmd, args).catch((err) => {
@@ -46,6 +49,7 @@ function syncSession() {
     musicCurrentPath = ctx?.musicPath ?? null;
     musicIsPlaying = musicCurrentPath !== null;
     musicLoopForever = (ctx?.musicLoop ?? 1) === 1;
+    musicSinkAlive = musicIsPlaying;
 
     logInvoke("tray_set_end_enabled", { enabled: true });
     // Rust-side ticker owns the 1s label refresh so it doesn't drift when
@@ -83,9 +87,12 @@ export function initTrayBridge(): void {
     if (musicIsPlaying) {
       void audio.pause();
       musicIsPlaying = false;
+    } else if (musicSinkAlive) {
+      void audio.resume();
+      musicIsPlaying = true;
     } else {
-      // Sink was dropped on pause/stop — play() with the current path re-creates it.
       void audio.play(musicCurrentPath, musicLoopForever);
+      musicSinkAlive = true;
       musicIsPlaying = true;
     }
     syncMusicMenu();
@@ -94,6 +101,7 @@ export function initTrayBridge(): void {
   void listen("focrel://tray-music-stop", () => {
     void audio.stop();
     musicIsPlaying = false;
+    musicSinkAlive = false;
     syncMusicMenu();
   });
 

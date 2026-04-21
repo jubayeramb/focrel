@@ -77,6 +77,10 @@ export function ActiveSessionView({
   const [volume, setVolume] = React.useState(0.6);
   const [loopEnabled, setLoopEnabled] = React.useState(true);
   const [miniMode, setMiniMode] = React.useState(false);
+  // Track whether the Rust sink is alive. After Stop the sink is dropped, so
+  // Play needs a fresh decode; on Pause the sink is preserved and Resume
+  // picks up where it left off — we shouldn't restart the track.
+  const [sinkAlive, setSinkAlive] = React.useState(hasMusicPath);
 
   async function toggleMiniMode() {
     const win = getCurrentWebviewWindow();
@@ -107,8 +111,12 @@ export function ActiveSessionView({
       await audio.pause();
       setIsPlaying(false);
     } else if (musicPath !== null) {
-      // Sink was dropped by Stop — fresh decode required.
-      await audio.play(musicPath, loopEnabled);
+      if (sinkAlive) {
+        await audio.resume();
+      } else {
+        await audio.play(musicPath, loopEnabled);
+        setSinkAlive(true);
+      }
       setIsPlaying(true);
     }
   }
@@ -117,9 +125,12 @@ export function ActiveSessionView({
     const next = !loopEnabled;
     setLoopEnabled(next);
     // Loop state is baked into the rodio source at play time, so to apply a
-    // toggle mid-track we need to restart playback from the current path.
+    // toggle mid-track we DO have to restart — rodio can't flip loop on an
+    // existing Sink. Only do this if currently playing to avoid surprising
+    // the user by restarting paused music.
     if (isPlaying && musicPath !== null) {
       await audio.play(musicPath, next);
+      setSinkAlive(true);
     }
   }
 
@@ -132,6 +143,7 @@ export function ActiveSessionView({
   async function handleStopAudio() {
     await audio.stop();
     setIsPlaying(false);
+    setSinkAlive(false);
   }
 
   const timerDisplay = isOvertime
@@ -185,6 +197,54 @@ export function ActiveSessionView({
             </ul>
           )}
         </div>
+        {hasMusicPath && (
+          <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => void togglePlayPause()}
+              aria-label={isPlaying ? "Pause music" : "Play music"}
+            >
+              {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+            </Button>
+            <Music className="size-3.5 text-muted-foreground shrink-0" />
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => void handleVolumeChange(e)}
+              className="flex-1 accent-primary h-1 rounded-full cursor-pointer min-w-0"
+              aria-label="Volume"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "size-7",
+                loopEnabled ? "text-primary" : "text-muted-foreground",
+              )}
+              onClick={() => void toggleLoop()}
+              aria-label={loopEnabled ? "Disable loop" : "Enable loop"}
+            >
+              <Repeat className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => void handleStopAudio()}
+              aria-label="Stop music"
+            >
+              <Square className="size-3.5" />
+            </Button>
+          </div>
+        )}
         <Button
           type="button"
           variant="outline"
