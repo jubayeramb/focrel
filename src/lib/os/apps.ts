@@ -14,3 +14,8 @@ export const listRunningApps = async (): Promise<RunningApp[]> => {
   );
   return raw.map((app) => ({ bundleId: app.bundle_id, name: app.name }));
 };
+
+export const listInstalledApps = () =>
+  invoke<{ bundle_id: string; name: string }[]>("list_installed_apps").then(
+    (rows) => rows.map((row) => ({ bundleId: row.bundle_id, name: row.name })),
+  );

@@ -2,7 +2,7 @@ mod commands;
 mod error;
 mod session;
 
-use commands::apps::{list_running_apps, quit_apps};
+use commands::apps::{list_installed_apps, list_running_apps, quit_apps};
 use commands::audio::{audio_pause, audio_play, audio_resume, audio_seek, audio_set_volume, audio_stop};
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
 use commands::wallpaper::{get_wallpaper_all, set_wallpaper};
@@ -57,6 +57,7 @@ pub fn run() {
             open_shortcuts_app,
             quit_apps,
             list_running_apps,
+            list_installed_apps,
             snapshot_save,
             snapshot_load,
             snapshot_clear,

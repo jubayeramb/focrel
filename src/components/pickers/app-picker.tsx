@@ -15,16 +15,24 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fallback, setFallback] = useState(false);
   const hasFetched = useRef(false);
 
   async function fetchApps() {
     setLoading(true);
     setError(null);
+    setFallback(false);
     try {
-      const result = await apps.listRunningApps();
+      const result = await apps.listInstalledApps();
       setList(result);
     } catch {
-      setError("Could not load running apps");
+      try {
+        const result = await apps.listRunningApps();
+        setList(result);
+        setFallback(true);
+      } catch {
+        setError("Could not load installed apps");
+      }
     } finally {
       setLoading(false);
     }
@@ -103,13 +111,18 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
         />
       </div>
 
+      {fallback && (
+        <p className="px-3 py-1.5 text-xs text-amber-600 dark:text-amber-400 border-b border-border">
+          Showing running apps — couldn't scan installed apps.
+        </p>
+      )}
       <div className="overflow-y-auto" style={{ maxHeight: "240px" }}>
         {error && (
           <p className="px-3 py-4 text-xs text-destructive text-center">{error}</p>
         )}
         {!error && sorted.length === 0 && (
           <p className="px-3 py-4 text-xs text-muted-foreground text-center">
-            {loading ? "Loading…" : "No apps found"}
+            {loading ? "Loading…" : "No apps found. Try refreshing."}
           </p>
         )}
         {sorted.map((app) => {
