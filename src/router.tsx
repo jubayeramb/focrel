@@ -19,15 +19,20 @@ import { SettingsPage } from "@/routes/settings";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 
 function OnboardingGate() {
+  const hydrated = useSettingsStore((s) => s.hydrated);
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
   const routerState = useRouterState();
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (!onboardingCompleted && routerState.location.pathname !== "/onboarding") {
-      void navigate({ to: "/onboarding" });
-    }
-  }, [onboardingCompleted, routerState.location.pathname, navigate]);
+    // Wait until settings have been read from plugin-store. Otherwise the
+    // default `onboardingCompleted: false` fires a redirect before hydrate()
+    // resolves, re-prompting users who've already completed onboarding.
+    if (!hydrated) return;
+    if (onboardingCompleted) return;
+    if (routerState.location.pathname === "/onboarding") return;
+    void navigate({ to: "/onboarding" });
+  }, [hydrated, onboardingCompleted, routerState.location.pathname, navigate]);
 
   return null;
 }

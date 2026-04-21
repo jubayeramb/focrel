@@ -12,6 +12,7 @@ type Settings = {
 
 type SettingsStore = Settings & {
   hotkeyError: string | null;
+  hydrated: boolean;
   setTheme(theme: Theme): void;
   setAutostart(autostart: boolean): void;
   setGlobalHotkey(hotkey: string | null): void;
@@ -36,6 +37,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   globalHotkey: null,
   onboardingCompleted: false,
   hotkeyError: null,
+  hydrated: false,
 
   setTheme(theme) {
     set({ theme });
@@ -77,6 +79,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       autostart: autostart ?? false,
       globalHotkey: globalHotkey ?? null,
       onboardingCompleted: onboardingCompleted ?? false,
+      hydrated: true,
     });
   },
 
