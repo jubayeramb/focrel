@@ -1,0 +1,15 @@
+<!--
+  Tray-icon template. macOS treats template images as shape-only: it ignores
+  the RGB channel and paints the alpha silhouette in the menubar's current
+  text color (black on light wallpaper, white on dark). So we draw in white
+  with varying alpha to give each plate distinct weight — macOS takes care
+  of the color inversion.
+-->
+<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(22 22)" fill="white">
+    <rect x="-16" y="-16" width="32" height="32" rx="6" ry="6" opacity="0.3" transform="rotate(-18)"/>
+    <rect x="-11" y="-11" width="22" height="22" rx="4" ry="4" opacity="0.55" transform="rotate(12)"/>
+    <rect x="-6" y="-6" width="12" height="12" rx="2" ry="2" opacity="0.85" transform="rotate(-6)"/>
+    <circle r="2" opacity="1"/>
+  </g>
+</svg>
