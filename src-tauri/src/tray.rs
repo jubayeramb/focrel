@@ -24,6 +24,11 @@ pub struct TrayHandles {
     pub start_submenu: Mutex<Option<Submenu<tauri::Wry>>>,
     pub music_play_item: Mutex<Option<MenuItem<tauri::Wry>>>,
     pub music_stop_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    // tokio task that updates the session label every 1s. Owning it in Rust
+    // (not JS setInterval) means the tray still ticks in real time while the
+    // webview is hidden or minimized — the browser throttles JS timers in
+    // background, so a JS-driven tick drifts.
+    pub ticker: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
 }
 
 pub fn tray_handles() -> TrayHandles {
@@ -33,6 +38,7 @@ pub fn tray_handles() -> TrayHandles {
         start_submenu: Mutex::new(None),
         music_play_item: Mutex::new(None),
         music_stop_item: Mutex::new(None),
+        ticker: Mutex::new(None),
     }
 }
 
@@ -135,7 +141,11 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
 
     let tray = TrayIconBuilder::with_id("focrel-tray")
         .icon(icon)
-        .icon_as_template(false)
+        // Template mode tells macOS to treat the icon's alpha channel as a
+        // shape mask and paint it in the menubar's current text color —
+        // black when the wallpaper / menubar is light, white when dark.
+        // tray-source.svg is a monochrome silhouette built for exactly this.
+        .icon_as_template(true)
         .menu(&menu)
         .on_menu_event(|app, event| {
             let id = event.id.as_ref();

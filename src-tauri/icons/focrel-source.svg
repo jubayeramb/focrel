@@ -57,8 +57,11 @@
       <path d="M 324 100 C 200 100, 100 200, 100 324 L 100 700 C 100 824, 200 924, 324 924 L 700 924 C 824 924, 924 824, 924 700 L 924 324 C 924 200, 824 100, 700 100 Z"/>
     </clipPath>
   </defs>
-  <!-- Scale the original 512-viewBox content into the 824×824 safe region and translate it there. -->
-  <g clip-path="url(#squircle)" transform="translate(100 100) scale(1.609375)">
+  <!-- Clip and transform on the same <g> composes oddly in resvg (the
+       content shifted and extended past the clip). Split them: outer <g>
+       owns the clip in root coords, inner <g> owns the transform. -->
+  <g clip-path="url(#squircle)">
+    <g transform="matrix(1.609375 0 0 1.609375 100 100)">
     <rect width="512" height="512" fill="url(#body)"/>
     <circle cx="120" cy="420" r="280" fill="#2fb3a5" opacity="0.10"/>
     <circle cx="392" cy="110" r="260" fill="#6a3fd2" opacity="0.14"/>
@@ -88,6 +91,7 @@
     <circle cx="256" cy="256" r="28" fill="url(#bloom)"/>
     <circle cx="256" cy="256" r="6" fill="#ffffff"/>
     <circle cx="256" cy="256" r="2.5" fill="#ffffff"/>
+    </g>
   </g>
   <path d="M 324 100 C 200 100, 100 200, 100 324 L 100 700 C 100 824, 200 924, 324 924 L 700 924 C 824 924, 924 824, 924 700 L 924 324 C 924 200, 824 100, 700 100 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3"/>
 </svg>
