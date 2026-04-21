@@ -71,8 +71,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // suppressHydrationWarning: the theme-init script above adds `.dark` to
+    // <html> before React hydrates, which creates a server-vs-client class
+    // diff React 19 otherwise flags. Scoped to <html>; children still hydrate
+    // strictly.
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
