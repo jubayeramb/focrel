@@ -12,12 +12,14 @@ export function Topbar({ sidebarVisible, onToggleSidebar, showSidebarToggle = tr
     <header
       data-tauri-drag-region
       className={cn(
-        "h-10 shrink-0 flex items-center border-b border-border",
+        "h-8 shrink-0 flex items-center border-b border-border",
         "bg-background/95 backdrop-blur-sm",
       )}
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >
-      {/* 80px reserved for macOS traffic lights (overlay titlebar) */}
+      {/* 80px reserved for macOS traffic lights (overlay titlebar).
+          h-8 (32px) places items-center content at y=16, which aligns
+          well with the traffic-lights cluster at y≈14. */}
       <div data-tauri-drag-region className="w-20 shrink-0" />
 
       {showSidebarToggle && (
@@ -25,16 +27,16 @@ export function Topbar({ sidebarVisible, onToggleSidebar, showSidebarToggle = tr
           type="button"
           onClick={onToggleSidebar}
           className={cn(
-            "flex size-7 items-center justify-center rounded-md text-muted-foreground",
+            "flex size-6 items-center justify-center rounded-md text-muted-foreground",
             "hover:bg-accent hover:text-foreground transition-colors",
           )}
           aria-label={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
           title={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
         >
           {sidebarVisible ? (
-            <PanelLeftClose className="size-4" />
+            <PanelLeftClose className="size-3.5" />
           ) : (
-            <PanelLeftOpen className="size-4" />
+            <PanelLeftOpen className="size-3.5" />
           )}
         </button>
       )}

@@ -82,7 +82,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed top-10 left-0 bottom-0 w-60 border-r border-border flex flex-col z-40"
+      className="fixed top-8 left-0 bottom-0 w-60 border-r border-border flex flex-col z-40"
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >
       {/* Wordmark */}
