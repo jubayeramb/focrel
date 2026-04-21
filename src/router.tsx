@@ -25,6 +25,9 @@ const homeRoute = createRoute({
         onNavigateToNewContext={() => {
           void navigate({ to: "/contexts/new" });
         }}
+        onStartSession={(contextId) => {
+          void navigate({ to: "/session", search: { contextId } });
+        }}
       />
     );
   },
