@@ -19,6 +19,7 @@ type ContextRow = {
   schedule_time: string | null;
   schedule_days: string;
   schedule_auto_start: number;
+  music_loop: number;
   created_at: number;
   updated_at: number;
   archived_at: number | null;
@@ -42,6 +43,7 @@ function toContext(row: ContextRow): Context {
     scheduleTime: row.schedule_time,
     scheduleDays: row.schedule_days,
     scheduleAutoStart: row.schedule_auto_start,
+    musicLoop: row.music_loop,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -76,8 +78,9 @@ export const contextsRepo = {
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
         schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
+        music_loop,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -95,6 +98,7 @@ export const contextsRepo = {
         input.scheduleTime ?? null,
         input.scheduleDays ?? "",
         input.scheduleAutoStart ?? 1,
+        input.musicLoop ?? 1,
         now,
         now,
         input.archivedAt ?? null,
@@ -124,6 +128,7 @@ export const contextsRepo = {
     if (patch.scheduleTime !== undefined) { fields.push("schedule_time = ?"); values.push(patch.scheduleTime); }
     if (patch.scheduleDays !== undefined) { fields.push("schedule_days = ?"); values.push(patch.scheduleDays); }
     if (patch.scheduleAutoStart !== undefined) { fields.push("schedule_auto_start = ?"); values.push(patch.scheduleAutoStart); }
+    if (patch.musicLoop !== undefined) { fields.push("music_loop = ?"); values.push(patch.musicLoop); }
     if (patch.archivedAt !== undefined) { fields.push("archived_at = ?"); values.push(patch.archivedAt); }
 
     values.push(id);

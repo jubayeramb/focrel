@@ -12,6 +12,7 @@ import { ColorPicker } from "@/components/pickers/color-picker";
 import { IconPicker } from "@/components/pickers/icon-picker";
 import { MusicPicker } from "@/components/pickers/music-picker";
 import { ShortcutPicker } from "@/components/pickers/shortcut-picker";
+import { TimePicker } from "@/components/pickers/time-picker";
 import { WallpaperPicker } from "@/components/pickers/wallpaper-picker";
 import { useContextStore } from "@/lib/stores/context-store";
 import { shortcuts } from "@/lib/os";
@@ -38,6 +39,7 @@ interface ContextDraft {
   scheduleTime: string;
   scheduleDays: number[];
   scheduleAutoStart: number;
+  musicLoop: number;
 }
 
 const defaultDraft: ContextDraft = {
@@ -56,6 +58,7 @@ const defaultDraft: ContextDraft = {
   scheduleTime: "",
   scheduleDays: [],
   scheduleAutoStart: 1,
+  musicLoop: 1,
 };
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
@@ -105,6 +108,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           ? loaded.scheduleDays.split(",").filter(Boolean).map(Number)
           : [],
         scheduleAutoStart: loaded.scheduleAutoStart,
+        musicLoop: loaded.musicLoop,
       });
     }
 
@@ -185,6 +189,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         scheduleTime: draft.scheduleEnabled && draft.scheduleTime ? draft.scheduleTime : null,
         scheduleDays: draft.scheduleDays.join(","),
         scheduleAutoStart: draft.scheduleAutoStart,
+        musicLoop: draft.musicLoop,
       };
       if (isEdit) {
         await contextStore.update(contextId!, payload);
@@ -357,6 +362,18 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
               onChange={(v) => patch("musicPath", v)}
               disabled={saving}
             />
+            {draft.musicPath && (
+              <div className="flex items-center justify-between pt-2">
+                <Label htmlFor="music-loop" className="text-sm font-normal cursor-pointer">
+                  Loop the track for the full session
+                </Label>
+                <Switch
+                  id="music-loop"
+                  checked={draft.musicLoop === 1}
+                  onCheckedChange={(next) => patch("musicLoop", next ? 1 : 0)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -460,13 +477,11 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           {draft.scheduleEnabled === 1 && (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="schedule-time">Time</Label>
-                <input
-                  id="schedule-time"
-                  type="time"
-                  value={draft.scheduleTime}
-                  onChange={(e) => patch("scheduleTime", e.target.value)}
-                  className="flex h-9 w-36 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                <Label>Time</Label>
+                <TimePicker
+                  value={draft.scheduleTime || "09:00"}
+                  onChange={(v) => patch("scheduleTime", v)}
+                  disabled={saving}
                 />
               </div>
 

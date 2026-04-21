@@ -79,10 +79,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         await wallpaper.setWallpaper(context.wallpaperPath);
       }
       if (context.musicPath) {
-        // Ambient tracks are typically short loops; keep them going for the
-        // full session by default. User can toggle loop off from the
-        // in-session music controls.
-        await audio.play(context.musicPath, true);
+        await audio.play(context.musicPath, context.musicLoop === 1);
       }
       if (context.shortcutName) {
         await shortcuts.runShortcut(context.shortcutName);

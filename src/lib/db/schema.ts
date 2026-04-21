@@ -17,6 +17,7 @@ export const contexts = sqliteTable("contexts", {
   scheduleTime: text("schedule_time"),
   scheduleDays: text("schedule_days").notNull().default(""),
   scheduleAutoStart: integer("schedule_auto_start").notNull().default(1),
+  musicLoop: integer("music_loop").notNull().default(1),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
   archivedAt: integer("archived_at"),

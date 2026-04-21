@@ -1,6 +1,7 @@
 import Database from "@tauri-apps/plugin-sql";
 import initSql from "./migrations/0001_init.sql?raw";
 import migration2 from "./migrations/0002_add_schedule.sql?raw";
+import migration3 from "./migrations/0003_music_loop.sql?raw";
 
 let _db: Database | null = null;
 
@@ -74,6 +75,38 @@ export async function runMigrations(): Promise<void> {
 
     await db.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)", [
       "0002_add_schedule",
+      Date.now(),
+    ]);
+  }
+
+  const rows3 = await db.select<Array<{ name: string }>>(
+    "SELECT name FROM _migrations WHERE name = ?",
+    ["0003_music_loop"],
+  );
+
+  if (rows3.length === 0) {
+    const existingCols = await db.select<Array<{ name: string }>>(
+      "PRAGMA table_info(contexts)",
+    );
+    const colSet = new Set(existingCols.map((c) => c.name));
+
+    const statements3 = migration3
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const statement of statements3) {
+      const addColMatch = statement.match(
+        /ALTER\s+TABLE\s+\w+\s+ADD\s+COLUMN\s+(\w+)/i,
+      );
+      if (addColMatch && colSet.has(addColMatch[1])) {
+        continue;
+      }
+      await db.execute(statement);
+    }
+
+    await db.execute("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)", [
+      "0003_music_loop",
       Date.now(),
     ]);
   }
