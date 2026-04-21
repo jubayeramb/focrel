@@ -24,37 +24,45 @@ function clearTick() {
   }
 }
 
+function logInvoke(cmd: string, args: Record<string, unknown>) {
+  invoke(cmd, args).catch((err) => {
+    console.error(`[focrel/tray] invoke ${cmd} failed:`, err, "args:", args);
+  });
+}
+
 function syncContexts() {
   const active: TrayContext[] = useContextStore
     .getState()
     .contexts.filter((c) => !c.archivedAt)
     .map((c) => ({ id: c.id, name: c.name }));
-  void invoke("tray_set_contexts", { contexts: active });
+  console.info(`[focrel/tray] syncContexts: ${active.length} items`);
+  logInvoke("tray_set_contexts", { contexts: active });
 }
 
 function syncSession() {
   const { state } = useSessionStore.getState();
+  console.info(`[focrel/tray] syncSession: phase=${state.phase}`);
 
   if (state.phase === "active") {
     const ctx = useContextStore.getState().getById(state.contextId);
     const ctxName = ctx?.name ?? "Focus";
     const capturedStartedAt = state.startedAt;
 
-    void invoke("tray_set_end_enabled", { enabled: true });
-    void invoke("tray_set_session_label", {
+    logInvoke("tray_set_end_enabled", { enabled: true });
+    logInvoke("tray_set_session_label", {
       label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
     });
 
     clearTick();
     tickInterval = setInterval(() => {
-      void invoke("tray_set_session_label", {
+      logInvoke("tray_set_session_label", {
         label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
       });
     }, 1000);
   } else {
     clearTick();
-    void invoke("tray_set_end_enabled", { enabled: false });
-    void invoke("tray_set_session_label", { label: "No active session" });
+    logInvoke("tray_set_end_enabled", { enabled: false });
+    logInvoke("tray_set_session_label", { label: "No active session" });
   }
 }
 
