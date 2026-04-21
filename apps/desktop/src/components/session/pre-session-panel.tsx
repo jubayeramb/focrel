@@ -3,7 +3,6 @@ import { AlertTriangle, CheckCircle2, Minus, Music, Plus, X } from "lucide-react
 import { renderIcon } from "@/components/pickers/icon-picker";
 import { TaskAddInput } from "@/components/task-add-input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useContextStore } from "@/lib/stores/context-store";
 import { useSessionStore } from "@/lib/stores/session-store";
@@ -21,19 +20,19 @@ type ReadinessItem = {
   icon: React.ReactNode;
 };
 
-function ReadinessRow({ label, configured, icon }: ReadinessItem) {
+function ReadinessPill({ label, configured, icon }: ReadinessItem) {
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="text-muted-foreground shrink-0">{icon}</span>
-      <span className="flex-1 text-sm text-foreground">{label}</span>
-      {configured ? (
-        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-          <CheckCircle2 className="size-3.5" />
-          Ready
-        </span>
-      ) : (
-        <span className="text-xs font-medium text-muted-foreground">Not configured</span>
+    <div
+      className={cn(
+        "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+        configured
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "border-border bg-muted/40 text-muted-foreground",
       )}
+    >
+      <span className="[&_svg]:size-3.5">{icon}</span>
+      <span className="font-medium">{label}</span>
+      {configured && <CheckCircle2 className="size-3" />}
     </div>
   );
 }
@@ -158,149 +157,146 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
   const anyNotConfigured = readiness.some((r) => !r.configured);
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg mx-auto py-4">
-      {/* Header */}
+    <div className="mx-auto flex max-w-xl flex-col gap-7 py-6">
+      {/* Header with color-accented tile */}
       <div className="flex items-center gap-3">
         <span
-          className="flex items-center justify-center w-10 h-10 rounded-xl text-white shrink-0"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
           style={{ backgroundColor: context.color }}
+          aria-hidden
         >
           {renderIcon(context.icon, "size-5")}
         </span>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-foreground leading-tight">{context.name}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-semibold leading-tight tracking-tight text-foreground">
+            {context.name}
+          </h1>
           {context.description && (
-            <p className="text-sm text-muted-foreground truncate">{context.description}</p>
+            <p className="truncate text-sm text-muted-foreground">{context.description}</p>
           )}
         </div>
       </div>
 
-      {/* Tasks */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-            Tasks for this session
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <TaskAddInput contextId={contextId} />
-          {pendingTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No pending tasks.</p>
-          ) : (
-            <ul className="space-y-1">
-              {pendingTasks.map((task) => {
-                const isChecked = selected.has(task.id);
-                return (
-                  <li key={task.id} className="group relative flex items-center">
-                    <label
-                      className={cn(
-                        "flex flex-1 items-center gap-3 rounded-md px-2 py-1.5 text-sm cursor-pointer",
-                        "hover:bg-accent/50 transition-colors",
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleTask(task.id)}
-                        className="rounded accent-primary shrink-0"
-                      />
-                      <span className="flex-1 min-w-0 truncate text-foreground">{task.title}</span>
-                    </label>
-                    <button
-                      type="button"
-                      aria-label={`Delete "${task.title}"`}
-                      className={cn(
-                        "size-3.5 shrink-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity",
-                        "text-muted-foreground hover:text-destructive",
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`Delete "${task.title}"?`)) {
-                          void useTaskStore.getState().remove(task.id);
-                        }
-                      }}
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Duration */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-            Duration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDuration(-5)}
-              aria-label="Decrease by 5 minutes"
-            >
-              <Minus className="size-4" />
-            </Button>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="number"
-                value={effectiveDuration}
-                onChange={handleDurationInput}
-                min={1}
-                max={480}
-                className={cn(
-                  "w-16 text-center text-lg font-semibold tabular-nums",
-                  "rounded-md border border-input bg-transparent px-2 py-1",
-                  "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
-                )}
-              />
-              <span className="text-sm text-muted-foreground">min</span>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDuration(5)}
-              aria-label="Increase by 5 minutes"
-            >
-              <Plus className="size-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Readiness */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-            Environment
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 divide-y divide-border">
-          {readiness.map((item) => (
-            <ReadinessRow key={item.label} {...item} />
-          ))}
-        </CardContent>
+      {/* Readiness pills — glanceable environment summary */}
+      <div className="flex flex-wrap gap-2">
+        {readiness.map((item) => (
+          <ReadinessPill key={item.label} {...item} />
+        ))}
         {anyNotConfigured && (
-          <div className="px-6 pb-4 flex items-start gap-2">
-            <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground">
-              This context will run in minimal mode.
-            </p>
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="size-3" />
+            <span className="font-medium">Minimal mode</span>
           </div>
         )}
-      </Card>
+      </div>
+
+      {/* Tasks — primary focus of the panel */}
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Tasks for this session
+          </span>
+          {pendingTasks.length > 0 && (
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {selected.size}/{pendingTasks.length} selected
+            </span>
+          )}
+        </div>
+        <TaskAddInput contextId={contextId} />
+        {pendingTasks.length === 0 ? (
+          <p className="px-1 py-2 text-sm text-muted-foreground">No pending tasks.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {pendingTasks.map((task) => {
+              const isChecked = selected.has(task.id);
+              return (
+                <li key={task.id} className="group relative flex items-center">
+                  <label
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors",
+                      "hover:bg-accent/50",
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleTask(task.id)}
+                      className="shrink-0 rounded accent-primary"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-foreground">{task.title}</span>
+                  </label>
+                  <button
+                    type="button"
+                    aria-label={`Delete "${task.title}"`}
+                    className={cn(
+                      "mr-2 size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                      "text-muted-foreground hover:text-destructive",
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Delete "${task.title}"?`)) {
+                        void useTaskStore.getState().remove(task.id);
+                      }
+                    }}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Duration — compact inline stepper */}
+      <section className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Duration
+          </span>
+          <span className="text-xs text-muted-foreground">How long to run</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-full"
+            onClick={() => adjustDuration(-5)}
+            aria-label="Decrease by 5 minutes"
+          >
+            <Minus className="size-3.5" />
+          </Button>
+          <div className="flex items-baseline gap-1">
+            <input
+              type="number"
+              value={effectiveDuration}
+              onChange={handleDurationInput}
+              min={1}
+              max={480}
+              className={cn(
+                "w-12 rounded-md border-none bg-transparent p-0 text-center text-lg font-semibold tabular-nums",
+                "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+              )}
+            />
+            <span className="text-xs text-muted-foreground">min</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-full"
+            onClick={() => adjustDuration(5)}
+            aria-label="Increase by 5 minutes"
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
+      </section>
 
       {/* Error */}
       {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
@@ -309,20 +305,26 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
       <div className="flex gap-3">
         <Button
           type="button"
-          className="flex-1"
+          className="h-11 flex-1 text-base"
           onClick={() => void handleStart()}
           disabled={starting}
         >
           {starting ? (
             <span className="flex items-center gap-2">
-              <span className="size-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
+              <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
               Starting…
             </span>
           ) : (
             "Start session"
           )}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={starting}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          onClick={onCancel}
+          disabled={starting}
+        >
           Cancel
         </Button>
       </div>

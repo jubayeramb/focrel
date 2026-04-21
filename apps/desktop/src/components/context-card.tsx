@@ -1,6 +1,5 @@
 import type * as React from "react";
 import { renderIcon } from "@/components/pickers/icon-picker";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Context } from "@/lib/db";
 
@@ -14,39 +13,57 @@ type ContextCardProps = {
 export function ContextCard({ context, onClick, actions, className }: ContextCardProps) {
   const inner = (
     <>
-      <CardHeader className="p-4 pb-3 space-y-0">
-        <div className="flex items-start justify-between mb-3">
+      {/* Color accent bar at the top — uses the context's own color so the
+          card reads as "this is the Deep Work card" at a glance. */}
+      <div
+        className="absolute inset-x-0 top-0 h-1 rounded-t-xl"
+        style={{ backgroundColor: context.color }}
+        aria-hidden
+      />
+
+      <div className="flex flex-col gap-3 p-5 pt-6">
+        <div className="flex items-start justify-between gap-3">
           <span
-            className="block w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white"
             style={{ backgroundColor: context.color }}
-          />
+            aria-hidden
+          >
+            {renderIcon(context.icon, "size-4")}
+          </span>
           {actions && (
             <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
               {actions}
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-1.5">
-          <div className="text-muted-foreground [&_svg]:size-5">
-            {renderIcon(context.icon, "size-5")}
-          </div>
-          <p className="text-lg font-semibold leading-tight">{context.name}</p>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-base font-semibold leading-tight text-foreground">
+            {context.name}
+          </p>
           {context.description && (
-            <p className="text-sm text-muted-foreground truncate">{context.description}</p>
+            <p className="truncate text-sm text-muted-foreground">{context.description}</p>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 pt-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{context.defaultDurationMinutes}m</span>
+
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {context.defaultDurationMinutes}m
+          </span>
           {context.archivedAt != null && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Archived
             </span>
           )}
         </div>
-      </CardContent>
+      </div>
     </>
+  );
+
+  const baseClass = cn(
+    "relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground",
+    "shadow-sm transition-shadow",
+    className,
   );
 
   if (onClick) {
@@ -55,8 +72,9 @@ export function ContextCard({ context, onClick, actions, className }: ContextCar
         role="button"
         tabIndex={0}
         className={cn(
-          "rounded-xl border bg-card text-card-foreground shadow-xs hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
-          className,
+          baseClass,
+          "cursor-pointer hover:shadow-md focus-visible:outline-hidden",
+          "focus-visible:ring-1 focus-visible:ring-ring",
         )}
         onClick={onClick}
         onKeyDown={(e) => {
@@ -68,9 +86,5 @@ export function ContextCard({ context, onClick, actions, className }: ContextCar
     );
   }
 
-  return (
-    <Card className={cn("shadow-xs", className)}>
-      {inner}
-    </Card>
-  );
+  return <div className={baseClass}>{inner}</div>;
 }
