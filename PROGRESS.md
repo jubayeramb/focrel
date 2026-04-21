@@ -4,9 +4,9 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Week 1 done → Week 2 — Context CRUD
-**Current task:** Smoke-test `pnpm tauri dev` boots, DB migrations apply, seed runs; then start Week 2 editor form.
-**Next action:** Run `pnpm tauri dev` on the user's Mac to confirm the window opens and `focrel.db` initializes. On first green boot, the tech lead dispatches Week 2 agents for the context editor pickers (wallpaper/music/shortcut/app).
+**Current phase:** Week 2 — Context CRUD (Week 1 code complete; only user-gated smoke test + icons remain)
+**Current task:** Dispatch Week 2 agents — context editor form, pickers (wallpaper/music/shortcut/app/color/icon), contexts list page.
+**Next action:** Launch 3 parallel agents (Pickers, Editor, List). Agents receive the Week 2 picker-prop contract so they can develop in isolation.
 
 ---
 
@@ -93,23 +93,53 @@
 
 ### Week 1 — Integration checkpoint
 - [x] `pnpm typecheck` green across entire project
+- [x] `pnpm build` green — 320 kB JS / 18 kB CSS (pre-minify on prod)
 - [x] `cargo check --manifest-path src-tauri/Cargo.toml` green (one benign dead_code warn on `AudioDecode` variant)
 - [x] All tracks committed with conventional-commit scopes (scaffold, rust, db, ui, stores+os, app)
-- [ ] Manual smoke test: `pnpm tauri dev` opens the window, home route renders
-- [ ] Call `runMigrations()` + `seedIfEmpty()` from startup — wire into `runStartupHooks()`
-- [ ] TanStack Query `QueryClientProvider` at the app root (per tech-lead directive 2026-04-21)
-- [ ] Replace placeholder icons in `src-tauri/icons/` before v0.1 build
+- [x] `runMigrations()` + `seedIfEmpty()` called from `runStartupHooks()`
+- [x] TanStack Query `QueryClientProvider` at the app root
+- [ ] Manual smoke test on user's Mac: `pnpm tauri dev` opens the window, home route renders, `focrel.db` initializes in app data dir **(user-gated)**
+- [ ] Replace placeholder icons in `src-tauri/icons/` before v0.1 build **(needs source art)**
 
 ---
 
 ## Week 2 — Context CRUD
-- [ ] Build full context editor form (name/color/icon/wallpaper/music/shortcut/appsToQuit/duration)
-- [ ] Wallpaper picker with file-picker dialog
-- [ ] Music picker
-- [ ] Shortcut name binder (list macOS Shortcuts via `shortcuts list` and pick one)
-- [ ] App picker (running apps list, multi-select)
-- [ ] Archive/unarchive flow
-- [ ] Keyboard shortcuts within editor
+
+**Picker prop contract (shared by all pickers — for parallel-agent isolation):**
+```ts
+type BasicPicker<T> = { value: T | null; onChange: (v: T | null) => void; disabled?: boolean };
+type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boolean };
+// WallpaperPicker / MusicPicker: BasicPicker<string>  (absolute file path)
+// ShortcutPicker:               BasicPicker<string>  (macOS Shortcut name)
+// ColorPicker:                  BasicPicker<string>  (hex like "#7c3aed")
+// IconPicker:                   BasicPicker<string>  (lucide icon name)
+// AppPicker:                    MultiPicker<string>  (bundle ids)
+```
+
+### Track F — Pickers (src/components/pickers/*)
+- [ ] **F1** `wallpaper-picker.tsx` — file-open dialog via `@tauri-apps/plugin-dialog` filtered to images; shows thumbnail + path
+- [ ] **F2** `music-picker.tsx` — file-open dialog filtered to audio; shows filename
+- [ ] **F3** `shortcut-picker.tsx` — calls `shortcuts.listShortcuts()`, select-like combobox; allows typed custom name
+- [ ] **F4** `app-picker.tsx` — calls `apps.listRunningApps()`, multi-select checklist with search filter
+- [ ] **F5** `color-picker.tsx` — preset swatches (8 tailwind-ish hues) + hex input
+- [ ] **F6** `icon-picker.tsx` — grid of ~24 curated lucide icons (Brain, Coffee, Focus, Target, Book, …)
+
+### Track G — Context editor form (src/routes/contexts/editor.tsx)
+- [ ] **G1** Route loader fetches context by id (edit mode) from `contextsRepo.get`
+- [ ] **G2** Form state via local `useState` or a simple form hook; no heavy form lib
+- [ ] **G3** Identity section: name, description, color (F5), icon (F6)
+- [ ] **G4** Environment section: wallpaper (F1), music (F2), shortcut (F3), revertShortcut (F3 again)
+- [ ] **G5** Behavior section: default duration minutes, appsToQuit (F4)
+- [ ] **G6** Save → `contextStore.create/update`; Cancel → back to /contexts
+- [ ] **G7** Keyboard shortcuts: `cmd+enter` save, `esc` cancel
+- [ ] **G8** Validation: non-empty name, valid hex color; inline errors
+
+### Track H — Contexts list + dashboard (src/routes/contexts/index.tsx + home.tsx)
+- [ ] **H1** List page: loads `useContextStore.contexts`, cards with icon/name/color/duration
+- [ ] **H2** Row actions: Edit, Archive, Unarchive, Delete (with confirm)
+- [ ] **H3** Toggle "show archived"
+- [ ] **H4** Empty state with "Create first context" button
+- [ ] **H5** Home page: same grid but clicking a context navigates to `/session?contextId=…`
 
 ## Week 3 — Tasks
 - [ ] Per-context task list UI with drag-reorder (dnd-kit)
