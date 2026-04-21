@@ -38,7 +38,7 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
 
   const selectClasses = cn(
     "h-9 rounded-md border border-input bg-background px-2 text-sm",
-    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+    "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
     "disabled:opacity-50 disabled:cursor-not-allowed",
   );
 

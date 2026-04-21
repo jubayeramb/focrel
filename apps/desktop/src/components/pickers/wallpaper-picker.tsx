@@ -57,10 +57,10 @@ export function WallpaperPicker({ value, onChange, disabled }: WallpaperPickerPr
             <button
               type="button"
               className={cn(
-                "absolute top-1.5 right-1.5 rounded-full bg-background/80 backdrop-blur-sm",
+                "absolute top-1.5 right-1.5 rounded-full bg-background/80 backdrop-blur-xs",
                 "w-6 h-6 flex items-center justify-center",
                 "hover:bg-background transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               )}
               onClick={handleClear}
               aria-label="Clear wallpaper"

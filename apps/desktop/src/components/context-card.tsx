@@ -55,7 +55,7 @@ export function ContextCard({ context, onClick, actions, className }: ContextCar
         role="button"
         tabIndex={0}
         className={cn(
-          "rounded-xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "rounded-xl border bg-card text-card-foreground shadow-xs hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
           className,
         )}
         onClick={onClick}
@@ -69,7 +69,7 @@ export function ContextCard({ context, onClick, actions, className }: ContextCar
   }
 
   return (
-    <Card className={cn("shadow-sm", className)}>
+    <Card className={cn("shadow-xs", className)}>
       {inner}
     </Card>
   );

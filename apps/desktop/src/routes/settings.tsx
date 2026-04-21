@@ -109,7 +109,7 @@ function HotkeyInput({ value, onChange }: HotkeyInputProps) {
         onBlur={() => setCapturing(false)}
         className={[
           "min-w-[120px] px-3 py-1.5 rounded-md border text-sm font-mono text-center",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
           capturing
             ? "border-ring bg-accent text-accent-foreground animate-pulse"
             : "border-input bg-background hover:bg-accent hover:text-accent-foreground",
@@ -337,7 +337,7 @@ function AutostartSection({ enabled, onToggle }: AutostartSectionProps) {
             onClick={() => void handleClick()}
             className={[
               "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed",
               enabled ? "bg-primary" : "bg-input",
             ].join(" ")}

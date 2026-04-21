@@ -29,9 +29,9 @@ export function DueDatePicker({ value, onChange, disabled }: DueDatePickerProps)
         onChange={handleChange}
         disabled={disabled}
         className={cn(
-          "flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm",
+          "flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs",
           "placeholder:text-muted-foreground transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:cursor-not-allowed disabled:opacity-50",
         )}
         aria-label="Due date and time"
@@ -44,7 +44,7 @@ export function DueDatePicker({ value, onChange, disabled }: DueDatePickerProps)
           className={cn(
             "flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground",
             "hover:bg-accent hover:text-accent-foreground transition-colors",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
           )}
           aria-label="Clear due date"
         >

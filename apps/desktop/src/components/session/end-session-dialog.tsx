@@ -69,7 +69,7 @@ export function EndSessionDialog({ open, initialReason = "completed", onSave, on
                   type="button"
                   onClick={() => setReason(value)}
                   className={cn(
-                    "flex-1 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    "flex-1 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
                     i > 0 && "border-l",
                     reason === value
                       ? "bg-primary text-primary-foreground"

@@ -98,9 +98,9 @@ export function ShortcutPicker({ value, onChange, disabled }: ShortcutPickerProp
             disabled={disabled}
             placeholder="Shortcut name…"
             className={cn(
-              "flex h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 py-1 text-sm shadow-sm",
+              "flex h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 py-1 text-sm shadow-xs",
               "placeholder:text-muted-foreground transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-50",
             )}
             role="combobox"
@@ -116,7 +116,7 @@ export function ShortcutPicker({ value, onChange, disabled }: ShortcutPickerProp
           className={cn(
             "h-9 w-9 flex items-center justify-center rounded-md border border-input",
             "hover:bg-accent transition-colors shrink-0",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
           aria-label="Refresh shortcuts list"

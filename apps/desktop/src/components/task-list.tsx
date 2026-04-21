@@ -177,7 +177,7 @@ export function TaskList({ contextId, statusFilter = "all" }: TaskListProps) {
 
   return (
     <div
-      className="outline-none"
+      className="outline-hidden"
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >

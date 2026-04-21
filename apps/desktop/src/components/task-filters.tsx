@@ -27,9 +27,9 @@ export function TaskFilters({ value, onChange, counts }: TaskFiltersProps) {
             onClick={() => onChange(key)}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+              "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               isSelected
-                ? "bg-background text-foreground border border-border shadow-sm"
+                ? "bg-background text-foreground border border-border shadow-xs"
                 : "bg-muted text-muted-foreground hover:bg-accent",
             )}
           >

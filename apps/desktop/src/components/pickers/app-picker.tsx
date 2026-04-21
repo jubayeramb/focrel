@@ -86,7 +86,7 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           className={cn(
             "h-6 w-6 flex items-center justify-center rounded-md",
             "hover:bg-accent transition-colors",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
           aria-label="Refresh app list"
@@ -106,7 +106,7 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           className={cn(
             "w-full pl-6 py-0.5 text-sm bg-transparent",
             "placeholder:text-muted-foreground",
-            "focus:outline-none",
+            "focus:outline-hidden",
             "disabled:cursor-not-allowed",
           )}
         />

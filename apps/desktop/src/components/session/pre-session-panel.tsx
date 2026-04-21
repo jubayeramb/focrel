@@ -258,7 +258,7 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
                 className={cn(
                   "w-16 text-center text-lg font-semibold tabular-nums",
                   "rounded-md border border-input bg-transparent px-2 py-1",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
                 )}
               />
               <span className="text-sm text-muted-foreground">min</span>

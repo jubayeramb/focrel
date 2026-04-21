@@ -74,7 +74,7 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
               key={hex}
               type="button"
               className={cn(
-                "w-7 h-7 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "w-7 h-7 rounded-full transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isSelected ? "ring-2 ring-offset-2 ring-ring scale-110" : "hover:scale-105",
               )}
               style={{ backgroundColor: hex }}
@@ -115,9 +115,9 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
           placeholder="#7c3aed"
           maxLength={7}
           className={cn(
-            "flex h-9 w-32 rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm",
+            "flex h-9 w-32 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs",
             "placeholder:text-muted-foreground transition-colors",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
             "disabled:cursor-not-allowed disabled:opacity-50",
             textInvalid ? "border-destructive" : "border-input",
           )}

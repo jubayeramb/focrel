@@ -61,7 +61,7 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
             type="button"
             className={cn(
               "flex items-center justify-center w-full aspect-square rounded-md transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               isSelected
                 ? "bg-primary text-primary-foreground ring-2 ring-ring ring-offset-1"
                 : "hover:bg-accent hover:text-accent-foreground text-muted-foreground",

@@ -13,7 +13,7 @@ export function Topbar({ sidebarVisible, onToggleSidebar, showSidebarToggle = tr
       data-tauri-drag-region
       className={cn(
         "h-8 shrink-0 flex items-center border-b border-border",
-        "bg-background/95 backdrop-blur-sm",
+        "bg-background/95 backdrop-blur-xs",
       )}
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >

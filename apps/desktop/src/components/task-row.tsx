@@ -120,7 +120,7 @@ export function TaskRow({ task, focused, onFocus, onDelete }: TaskRowProps) {
             onKeyDown={(e) => void handleEditKeyDown(e)}
             onBlur={() => void commitEdit()}
             className={cn(
-              "w-full bg-transparent outline-none focus:ring-1 focus:ring-ring rounded px-0.5",
+              "w-full bg-transparent outline-hidden focus:ring-1 focus:ring-ring rounded px-0.5",
               "text-sm text-foreground",
             )}
           />

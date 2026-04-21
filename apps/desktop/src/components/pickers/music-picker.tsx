@@ -53,7 +53,7 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
           className={cn(
             "rounded-full w-5 h-5 flex items-center justify-center shrink-0",
             "hover:bg-accent transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
           )}
           onClick={handleClear}
           aria-label="Clear track"
