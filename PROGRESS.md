@@ -4,9 +4,9 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Week 3 done → Week 4 — Session Engine
-**Current task:** Dispatch Week 4 — pre-session task picker, active session UI (timer + tasks + music), end-session log, session history.
-**Next action:** Split Week 4 into 2 parallel tracks — Track K (session start flow + active session view), Track L (end-session log, break prompt, history).
+**Current phase:** Week 4 done → Week 5 (code already shipped in Week 1 Track E; only manual tests remain) → Week 6 — Polish & Ship
+**Current task:** Dispatch Week 6 — onboarding, notifications, global hotkey, autostart, theme/accent.
+**Next action:** Split Week 6 into 2 parallel tracks — Track M (onboarding + notifications + accent + README draft), Track N (global hotkey + autostart + settings UI + theme override).
 
 ---
 
@@ -167,47 +167,72 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 ## Week 4 — Session Engine
 
 ### Track K — Session start flow + active session view
-- [ ] **K1** `src/routes/session.tsx` (replace stub) — page-level orchestrator that reads `contextId` from search params, subscribes to `useSessionStore`, and renders the correct sub-view for each phase (`idle`/`starting`/`active`/`ending`/`recovered`)
-- [ ] **K2** `src/components/session/pre-session-panel.tsx` — shown when `phase === 'idle'` or just before start; lists the context's pending tasks with checkboxes to pick which ones to tackle this session, duration adjuster (default from context), and a big "Start session" button
-- [ ] **K3** `src/components/session/active-session-view.tsx` — shown when `phase === 'active'`; full-bleed layout with:
+- [x] **K1** `src/routes/session.tsx` (replace stub) — page-level orchestrator that reads `contextId` from search params, subscribes to `useSessionStore`, and renders the correct sub-view for each phase (`idle`/`starting`/`active`/`ending`/`recovered`)
+- [x] **K2** `src/components/session/pre-session-panel.tsx` — shown when `phase === 'idle'` or just before start; lists the context's pending tasks with checkboxes to pick which ones to tackle this session, duration adjuster (default from context), and a big "Start session" button
+- [x] **K3** `src/components/session/active-session-view.tsx` — shown when `phase === 'active'`; full-bleed layout with:
   - Large timer (MM:SS countdown) at top center; driven by a `useSessionTimer(startedAt, plannedDurationMinutes)` hook (K4)
   - Selected tasks list with checkboxes (re-uses `TaskRow`); checking a task calls `taskStore.setStatus(id, 'done')`
   - Music mini-controls at bottom (play/pause, volume slider) wired to `src/lib/os/audio.ts`
   - Prominent "End session" button (calls `sessionStore.end('interrupted')`; if timer hit 0, treat as `'completed'` — K3 logic)
-- [ ] **K4** `src/lib/hooks/use-session-timer.ts` — `{ remainingSeconds, elapsedSeconds, isOvertime, progress01 }`; ticks every 1s via `setInterval`; cleans up on unmount
-- [ ] **K5** On timer reaching 0, emit a local event / dispatch state to Track L's break prompt (shared ephemeral state via `session-store` or a small `useBreakPrompt` hook)
-- [ ] **K6** Gate `Start session` button in K2 if the context has no wallpaper/music/shortcut set (warn but allow start — "minimal mode")
+- [x] **K4** `src/lib/hooks/use-session-timer.ts` — `{ remainingSeconds, elapsedSeconds, isOvertime, progress01 }`; ticks every 1s via `setInterval`; cleans up on unmount
+- [x] **K5** On timer reaching 0, emit a local event / dispatch state to Track L's break prompt (shared ephemeral state via `session-store` or a small `useBreakPrompt` hook)
+- [x] **K6** Gate `Start session` button in K2 if the context has no wallpaper/music/shortcut set (warn but allow start — "minimal mode")
 
 ### Track L — End-session log + break prompt + history
-- [ ] **L1** `src/components/session/end-session-dialog.tsx` — modal shown when user clicks End session OR timer reaches 0; fields: endReason radio (completed/interrupted/abandoned — auto-select based on how it was triggered), optional notes textarea; Save calls `sessionStore.end(reason, notes)`
-- [ ] **L2** `src/components/session/break-prompt.tsx` — shown when the active timer hits 0; two buttons: "Take a 5-minute break" (end current session as `completed`, start a Break context session for 5m) and "End session" (opens L1)
-- [ ] **L3** `src/routes/contexts/$id/history.tsx` — per-context session history route; lists recent sessions (via `sessionsRepo.recentForContext`) in a table with started-at, duration, end reason, notes preview
-- [ ] **L4** Add `/contexts/$id/history` route to `src/router.tsx`; link from the context card menu in `/contexts`
-- [ ] **L5** `src/lib/stores/history-store.ts` — Zustand store for recent sessions per context; lazy load on the history route; invalidate after `sessionStore.end`
+- [x] **L1** `src/components/session/end-session-dialog.tsx` — modal shown when user clicks End session OR timer reaches 0; fields: endReason radio (completed/interrupted/abandoned — auto-select based on how it was triggered), optional notes textarea; Save calls `sessionStore.end(reason, notes)`
+- [x] **L2** `src/components/session/break-prompt.tsx` — shown when the active timer hits 0; two buttons: "Take a 5-minute break" (end current session as `completed`, start a Break context session for 5m) and "End session" (opens L1)
+- [x] **L3** `src/routes/contexts/history.tsx` — per-context session history route; lists recent sessions (via `sessionsRepo.recentForContext`) in a table with started-at, duration, end reason, notes preview
+- [x] **L4** Add `/contexts/$id/history` route to `src/router.tsx`; link from the context card menu in `/contexts`
+- [x] **L5** `src/lib/stores/history-store.ts` — Zustand store for recent sessions per context; lazy load on the history route; invalidate after `sessionStore.end`
 
 ### Week 4 — Integration checkpoint
-- [ ] `pnpm typecheck` + `pnpm build` green
-- [ ] Two scoped commits: `feat(session): active session view + timer + start flow`, `feat(session): end dialog + break prompt + history`
+- [x] `pnpm typecheck` + `pnpm build` green
+- [x] Two scoped commits: `feat(session): pre-session panel + active view + timer hook`, `feat(session): end dialog, break prompt, history route + page wiring`
 
-## Week 5 — OS Bridge wire-up
-- [ ] Full snapshot-before-mutate flow in session-store start path
-- [ ] Launch-time reconciler (stale session-file detection + restore + prompt)
-- [ ] Wallpaper change verified across multiple screens + Spaces
-- [ ] Audio survives `cmd-h` (manual test)
-- [ ] Focus shortcut runs on session start, revert shortcut on end
-- [ ] appsToQuit runs on start, doesn't nag if app not running
-- [ ] `kill -9` recovery test passes
+## Week 5 — OS Bridge wire-up (code already implemented in Week 1 Track E)
+
+Code tasks — verified via `src/lib/stores/session-store.ts`:
+- [x] Full snapshot-before-mutate flow in session-store `start()` — captures wallpapers, writes snapshot, then applies mutations, then persists final snapshot with session id + apps quit
+- [x] Launch-time reconciler — `checkForRecoveryOnLaunch()` dispatches `snapshot.reconcileSnapshot()` and flips phase to `'recovered'` when a stale session-file is found
+- [x] Focus shortcut runs on session start (`shortcuts.runShortcut(context.shortcutName)`); revert shortcut runs on end (`shortcuts.runShortcut(snap.revertShortcutName)` when `focusToggledByUs`)
+- [x] `appsToQuit` fires on start when JSON array is non-empty; silent no-op per bundle id when not running (Rust-side osascript swallows the error)
+- [x] `end()` restores wallpaper, stops audio, runs revert shortcut, clears snapshot
+
+Manual tests (user-gated — must run on the user's Mac):
+- [ ] Wallpaper change visible across multiple screens + Spaces
+- [ ] Audio survives `cmd-h` / window hide (the `rodio`-on-dedicated-thread test that would fail with HTML5 audio)
+- [ ] `kill -9` on the app mid-session → relaunch → reconciler restores the original wallpaper and surfaces the "recovered" banner
+- [ ] Focus indicator appears in the macOS menubar when a context with a Shortcut runs, disappears at end
 
 ## Week 6 — Polish & Ship
-- [ ] Onboarding flow: permissions explainer + template Shortcut install via `open -a Shortcuts`
-- [ ] Notifications (session-start, break prompt, session-end)
-- [ ] Global hotkey (cmd+shift+f → toggle quick-start)
-- [ ] Menu-bar mode (tray icon + mini popover)
-- [ ] Autostart
-- [ ] Light/dark + custom accent from active context color
+
+### Track M — Onboarding + notifications + accent + README
+- [ ] **M1** `src/routes/onboarding.tsx` — first-run experience: Welcome → Permissions explainer → Shortcut template install via `shell.open('-a Shortcuts <bundled.shortcut>')` (use `@tauri-apps/plugin-shell`) → Done
+- [ ] **M2** `src/lib/stores/settings-store.ts` — add `onboardingCompleted: boolean` field (persisted via plugin-store); default `false`; `markOnboardingComplete()`
+- [ ] **M3** Gate onboarding in `src/router.tsx`: if `!onboardingCompleted`, force-navigate to `/onboarding` on mount
+- [ ] **M4** `src/lib/os/notifications.ts` — thin wrapper over `@tauri-apps/plugin-notification` (`isPermissionGranted`, `requestPermission`, `sendNotification(title, body)`)
+- [ ] **M5** Hook notifications in `session-store`: session start → "Focus session started", session end → "Session complete — {name}" with duration (auto-triggered only; skip when user abandons)
+- [ ] **M6** Accent color from active context: set a CSS var `--accent-ctx` on `<html>` when `phase === 'active'`, cleared on idle; tint the timer progress bar + a few accents
+- [ ] **M7** `README.md` draft: what Focrel is, quick start (dev), architecture map, build/distribution notes, status (MVP shipping)
+
+### Track N — Global hotkey + autostart + settings UI + theme override
+- [ ] **N1** `src/lib/os/hotkey.ts` — wrappers over `@tauri-apps/plugin-global-shortcut` (`register`, `unregister`, `isRegistered`)
+- [ ] **N2** On app boot (after startup hooks): register `settings.globalHotkey` (default `"CmdOrControl+Shift+F"`) → brings window to front, navigates `/`
+- [ ] **N3** `src/lib/os/autostart.ts` — wrappers over `@tauri-apps/plugin-autostart` (`enable`, `disable`, `isEnabled`); sync with `settings.autostart` on change
+- [ ] **N4** `src/routes/settings.tsx` — replace stub with full form: Theme select (system/light/dark), Autostart toggle, Global Hotkey input (captures key combo), onboarding replay button
+- [ ] **N5** Theme override: `src/lib/theme.ts` — `applyTheme(mode: 'system'|'light'|'dark')`; call from settings-store subscriber; unmount the system-preference listener when non-system is chosen
+- [ ] **N6** Hotkey input component that captures `keydown` and serializes to `"CmdOrControl+Shift+F"` format; validates against duplicate system shortcuts where feasible (best-effort — Tauri surfaces the error on register)
+
+### Week 6 — Integration checkpoint
+- [ ] `pnpm typecheck` + `pnpm build` green
+- [ ] Two scoped commits: `feat(onboarding): first-run flow + notifications + accent + README`, `feat(settings): global hotkey + autostart + theme override + settings UI`
+
+### Week 6 — User-gated (deferred; needs hardware/Apple Dev account/source art)
+- [ ] Menu-bar mode (tray icon + mini popover) — post-MVP polish
 - [ ] Code-sign (Developer ID) + notarize + staple
 - [ ] DMG build with Sparkle feed (auto-update)
-- [ ] README + screenshots
+- [ ] Real icons in `src-tauri/icons/` (replace placeholders)
+- [ ] Screenshots in README
 
 ## v1.1 — Deferred
 - [ ] Network Extension content filter (Swift sidecar) for site blocking
@@ -232,3 +257,8 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 2026-04-21 — I — task list + row + add + store + keyboard: src/lib/stores/task-store.ts, src/components/task-{list,row,add-input}.tsx, src/routes/contexts/editor.tsx (Tasks section).
 2026-04-21 — J — dnd-kit + due-date/priority pickers + task filters: package.json, pnpm-lock.yaml, src/components/pickers/{due-date,priority}-picker.tsx, src/components/task-filters.tsx, src/components/task-list.tsx (DnD wrap), src/routes/contexts/editor.tsx (filter lift).
 2026-04-21 — CTO — Week 3 close-out: typecheck + build green; 2 scoped commits (feat(tasks) core + feat(tasks) pickers/filters/editor integration). 14 commits on main.
+2026-04-21 — K — session page + pre-session + active view + timer hook: src/routes/session.tsx, src/components/session/{pre-session-panel,active-session-view}.tsx, src/lib/hooks/use-session-timer.ts. End flow stubbed with direct sessionStore.end call pending Track L integration.
+2026-04-21 — L — end-session dialog + break prompt + history route + history store: src/components/session/{end-session-dialog,break-prompt}.tsx, src/routes/contexts/history.tsx, src/router.tsx (+history route), src/routes/contexts/index.tsx (+History menu item), src/lib/stores/history-store.ts.
+2026-04-21 — CTO — Week 4 close-out: replaced K's handleEndRequest TODO with real dispatch — auto-end opens BreakPrompt (Take break / Extend 10m / End), manual end opens EndSessionDialog; Take-break ends session and starts seeded Break context for 5m. Verified Week 5 wire-up is already implemented in session-store (plan §3.5 pattern). 2 scoped commits (feat(session) K + feat(session) L+integration); 17 total on main.
+2026-04-21 — K — session page + pre-session + active view + timer hook: src/routes/session.tsx, src/components/session/{pre-session-panel,active-session-view}.tsx, src/lib/hooks/use-session-timer.ts. End flow stubbed with direct sessionStore.end call pending Track L integration.
+2026-04-21 — L — end-session dialog + break prompt + history route + history store: src/components/session/{end-session-dialog,break-prompt}.tsx, src/routes/contexts/history.tsx, src/router.tsx (+history route), src/routes/contexts/index.tsx (+History menu item), src/lib/stores/history-store.ts.
