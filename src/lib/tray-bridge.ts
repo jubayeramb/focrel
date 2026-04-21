@@ -1,10 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { audio } from "./os";
 import { useContextStore } from "./stores/context-store";
 import { useSessionStore } from "./stores/session-store";
 
 type TrayContext = { id: string; name: string };
+
+// Module-level music playback state that lives alongside the active session
+// so the tray can reflect play/pause without the UI mounting a component.
+let musicIsPlaying = false;
+let musicCurrentPath: string | null = null;
+let musicLoopForever = true;
 
 function formatElapsed(startedAt: number): string {
   const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
@@ -39,6 +46,13 @@ function syncContexts() {
   logInvoke("tray_set_contexts", { contexts: active });
 }
 
+function syncMusicMenu() {
+  logInvoke("tray_set_music_state", {
+    available: musicCurrentPath !== null,
+    isPlaying: musicIsPlaying,
+  });
+}
+
 function syncSession() {
   const { state } = useSessionStore.getState();
   console.info(`[focrel/tray] syncSession: phase=${state.phase}`);
@@ -48,10 +62,17 @@ function syncSession() {
     const ctxName = ctx?.name ?? "Focus";
     const capturedStartedAt = state.startedAt;
 
+    // Music availability follows the session's configured track; audio.play
+    // is already fired from session-store.start. We mirror that belief here.
+    musicCurrentPath = ctx?.musicPath ?? null;
+    musicIsPlaying = musicCurrentPath !== null;
+    musicLoopForever = (ctx?.musicLoop ?? 1) === 1;
+
     logInvoke("tray_set_end_enabled", { enabled: true });
     logInvoke("tray_set_session_label", {
       label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
     });
+    syncMusicMenu();
 
     clearTick();
     tickInterval = setInterval(() => {
@@ -61,8 +82,11 @@ function syncSession() {
     }, 1000);
   } else {
     clearTick();
+    musicCurrentPath = null;
+    musicIsPlaying = false;
     logInvoke("tray_set_end_enabled", { enabled: false });
     logInvoke("tray_set_session_label", { label: "No active session" });
+    syncMusicMenu();
   }
 }
 
@@ -79,6 +103,25 @@ export function initTrayBridge(): void {
 
   void listen("focrel://tray-end-session", () => {
     void useSessionStore.getState().end("interrupted");
+  });
+
+  void listen("focrel://tray-music-toggle", () => {
+    if (musicCurrentPath === null) return;
+    if (musicIsPlaying) {
+      void audio.pause();
+      musicIsPlaying = false;
+    } else {
+      // Sink was dropped on pause/stop — play() with the current path re-creates it.
+      void audio.play(musicCurrentPath, musicLoopForever);
+      musicIsPlaying = true;
+    }
+    syncMusicMenu();
+  });
+
+  void listen("focrel://tray-music-stop", () => {
+    void audio.stop();
+    musicIsPlaying = false;
+    syncMusicMenu();
   });
 
   useContextStore.subscribe(syncContexts);

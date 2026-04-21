@@ -22,6 +22,8 @@ pub struct TrayHandles {
     pub session_item: Mutex<Option<MenuItem<tauri::Wry>>>,
     pub end_item: Mutex<Option<MenuItem<tauri::Wry>>>,
     pub start_submenu: Mutex<Option<Submenu<tauri::Wry>>>,
+    pub music_play_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    pub music_stop_item: Mutex<Option<MenuItem<tauri::Wry>>>,
 }
 
 pub fn tray_handles() -> TrayHandles {
@@ -29,6 +31,8 @@ pub fn tray_handles() -> TrayHandles {
         session_item: Mutex::new(None),
         end_item: Mutex::new(None),
         start_submenu: Mutex::new(None),
+        music_play_item: Mutex::new(None),
+        music_stop_item: Mutex::new(None),
     }
 }
 
@@ -107,6 +111,12 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
     let end_item = MenuItemBuilder::with_id("end-session", "End session")
         .enabled(false)
         .build(app)?;
+    let music_play_item = MenuItemBuilder::with_id("music-toggle", "Pause music")
+        .enabled(false)
+        .build(app)?;
+    let music_stop_item = MenuItemBuilder::with_id("music-stop", "Stop music")
+        .enabled(false)
+        .build(app)?;
     let open_item = MenuItemBuilder::with_id("open-focrel", "Open Focrel").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
@@ -115,6 +125,9 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
         .item(&session_item)
         .item(&start_submenu)
         .item(&end_item)
+        .separator()
+        .item(&music_play_item)
+        .item(&music_stop_item)
         .separator()
         .item(&open_item)
         .item(&quit_item)
@@ -137,6 +150,16 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
                 "end-session" => {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.emit("focrel://tray-end-session", ());
+                    }
+                }
+                "music-toggle" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.emit("focrel://tray-music-toggle", ());
+                    }
+                }
+                "music-stop" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.emit("focrel://tray-music-stop", ());
                     }
                 }
                 other if other.starts_with("start-session-") && other != "start-session-empty" => {
@@ -162,6 +185,8 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
     *handles.session_item.lock().unwrap() = Some(session_item);
     *handles.end_item.lock().unwrap() = Some(end_item);
     *handles.start_submenu.lock().unwrap() = Some(start_submenu);
+    *handles.music_play_item.lock().unwrap() = Some(music_play_item);
+    *handles.music_stop_item.lock().unwrap() = Some(music_stop_item);
 
     Ok(())
 }

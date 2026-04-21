@@ -3,10 +3,12 @@ mod error;
 mod session;
 mod tray;
 
-use commands::apps::{list_installed_apps, list_running_apps, quit_apps};
+use commands::apps::{get_app_icon, list_installed_apps, list_running_apps, quit_apps};
 use commands::audio::{audio_pause, audio_play, audio_resume, audio_seek, audio_set_volume, audio_stop};
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
-use commands::tray_cmds::{tray_set_contexts, tray_set_end_enabled, tray_set_session_label};
+use commands::tray_cmds::{
+    tray_set_contexts, tray_set_end_enabled, tray_set_music_state, tray_set_session_label,
+};
 use commands::wallpaper::{get_wallpaper_all, set_wallpaper};
 use session::snapshot::{snapshot_clear, snapshot_load, snapshot_reconcile, snapshot_save};
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
@@ -63,6 +65,7 @@ pub fn run() {
             quit_apps,
             list_running_apps,
             list_installed_apps,
+            get_app_icon,
             snapshot_save,
             snapshot_load,
             snapshot_clear,
@@ -70,6 +73,7 @@ pub fn run() {
             tray_set_session_label,
             tray_set_contexts,
             tray_set_end_enabled,
+            tray_set_music_state,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Tauri application")
