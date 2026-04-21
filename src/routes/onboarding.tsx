@@ -82,12 +82,47 @@ function StepPermissions({ onNext }: { onNext: () => void }) {
         <CardContent className="pt-6 flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <Wand2 className="size-5 text-primary mt-0.5 shrink-0" />
-            <div className="flex flex-col gap-2 flex-1">
+            <div className="flex flex-col gap-3 flex-1">
               <p className="font-medium text-sm">macOS Shortcuts for Focus mode</p>
               <p className="text-sm text-muted-foreground">
-                Focrel uses macOS <strong>Shortcuts</strong> to toggle Focus mode — no private APIs
-                required.
+                Focrel has no private access to macOS Focus — we ask the built-in{" "}
+                <strong>Shortcuts</strong> app to flip it for you. You set the Shortcut up once; we
+                run it by name on session start and end.
               </p>
+              <div className="rounded-lg bg-muted/60 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                  One-time setup
+                </p>
+                <ol className="list-decimal list-inside text-sm space-y-1.5 text-foreground">
+                  <li>Click <span className="font-medium">Open Shortcuts app</span> below.</li>
+                  <li>In Shortcuts: <span className="font-medium">File → New Shortcut</span>.</li>
+                  <li>
+                    Search for the action <span className="font-medium">"Set Focus"</span> and add
+                    it. Configure it as{" "}
+                    <span className="font-medium">Turn Do Not Disturb On</span> (or any Focus mode).
+                  </li>
+                  <li>
+                    Rename the Shortcut to something like{" "}
+                    <code className="bg-background px-1 rounded text-xs">
+                      Focrel: Deep Work Focus On
+                    </code>
+                    .
+                  </li>
+                  <li>
+                    Create a <em>second</em> Shortcut the same way but with the Focus action set to{" "}
+                    <span className="font-medium">Turn Off</span> — name it{" "}
+                    <code className="bg-background px-1 rounded text-xs">
+                      Focrel: Deep Work Focus Off
+                    </code>
+                    . Focrel runs this on session end.
+                  </li>
+                  <li>
+                    Come back to Focrel and open the context editor — pick your two Shortcuts under
+                    <span className="font-medium"> macOS Shortcut</span> and{" "}
+                    <span className="font-medium">Revert Shortcut</span>. Test with the Test button.
+                  </li>
+                </ol>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -97,10 +132,8 @@ function StepPermissions({ onNext }: { onNext: () => void }) {
                 Open Shortcuts app
               </Button>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Create a Shortcut named{" "}
-                <code className="bg-muted px-1 rounded text-xs">Focrel: Deep Work Focus On</code>{" "}
-                that turns on your Do Not Disturb Focus. You'll bind it to a context later in
-                Settings.
+                You can skip this now and set it up later — contexts without a Shortcut still run
+                in "minimal mode" (wallpaper, music, apps-to-quit all still work).
               </p>
             </div>
           </div>

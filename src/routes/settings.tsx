@@ -1,9 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Keyboard, Monitor, Moon, Power, Sun, Zap } from "lucide-react";
+import { Database, Keyboard, Monitor, Moon, Power, Sun, Zap } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { sessionsRepo } from "@/lib/db";
 import { autostart } from "@/lib/os/autostart";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 
@@ -171,7 +172,69 @@ export function SettingsPage() {
           void navigate({ to: "/onboarding" });
         }}
       />
+
+      <DataSection />
     </div>
+  );
+}
+
+// ─── Data section ─────────────────────────────────────────────────────────────
+
+function DataSection() {
+  const [clearing, setClearing] = useState(false);
+  const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
+
+  async function handleClear() {
+    const ok = window.confirm(
+      "Clear all session history? This wipes every recorded session and cannot be undone. Your contexts and tasks stay intact.",
+    );
+    if (!ok) return;
+    setClearing(true);
+    setStatus(null);
+    try {
+      await sessionsRepo.clearAll();
+      setStatus({ kind: "ok", message: "History cleared." });
+    } catch (err) {
+      setStatus({ kind: "err", message: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Database className="size-4" />
+          Data
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Wipe your session history. Contexts and tasks are preserved.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void handleClear()}
+          disabled={clearing}
+          className="border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+        >
+          {clearing ? "Clearing…" : "Clear all history"}
+        </Button>
+        {status && (
+          <p
+            className={
+              status.kind === "ok"
+                ? "text-xs text-emerald-600 dark:text-emerald-400"
+                : "text-xs text-destructive"
+            }
+          >
+            {status.message}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

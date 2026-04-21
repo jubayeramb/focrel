@@ -118,6 +118,12 @@ export const sessionsRepo = {
     return rows.map(toSession);
   },
 
+  async clearAll(): Promise<void> {
+    const db = await getDb();
+    // session_tasks rows cascade-delete with sessions via the FK constraint.
+    await db.execute("DELETE FROM sessions");
+  },
+
   async allRecent(limit = 100): Promise<Session[]> {
     const db = await getDb();
     const rows = await db.select<SessionRow[]>(
