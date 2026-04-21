@@ -60,7 +60,13 @@ export function ActiveSessionView({
   }, [remainingSeconds, onRequestEnd]);
 
   const tasks = useTaskStore((s) => s.tasksFor(contextId));
-  const sessionTasks = tasks.filter((t) => taskIds.includes(t.id));
+  // When taskIds is empty (quick-start from tray / card Start button skips
+  // the pre-session task picker), fall back to all open tasks for the
+  // context so the running session still surfaces something to check off.
+  const sessionTasks =
+    taskIds.length > 0
+      ? tasks.filter((t) => taskIds.includes(t.id))
+      : tasks.filter((t) => t.status !== "done");
   const completedCount = sessionTasks.filter((t) => t.status === "done").length;
 
   const context = useContextStore((s) => s.getById(contextId));

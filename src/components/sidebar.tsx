@@ -82,12 +82,9 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed top-0 left-0 bottom-0 w-60 border-r border-border flex flex-col z-40"
+      className="fixed top-10 left-0 bottom-0 w-60 border-r border-border flex flex-col z-40"
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >
-      {/* Traffic-light drag region — 40px so macOS controls don't overlap nav */}
-      <div data-tauri-drag-region className="h-10 shrink-0" />
-
       {/* Wordmark */}
       <div className="px-4 pt-3 pb-2">
         <span className="text-lg font-semibold select-none">Focrel</span>
