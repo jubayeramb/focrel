@@ -7,6 +7,10 @@ function clampVolume(volume: number): number {
 export const play = (path: string, loopForever = false) =>
   invoke<void>("audio_play", { path, loopForever });
 
+export const queue = (path: string) => invoke<void>("audio_queue", { path });
+
+export const isEmpty = () => invoke<boolean>("audio_is_empty");
+
 export const pause = () => invoke<void>("audio_pause");
 
 export const resume = () => invoke<void>("audio_resume");

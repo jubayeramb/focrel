@@ -1,9 +1,66 @@
 import { create } from "zustand";
 import { contextsRepo, sessionsRepo } from "@/lib/db";
+import type { Context } from "@/lib/db";
 import { wallpaper, audio, shortcuts, apps, snapshot } from "@/lib/os";
 import { notify } from "@/lib/os/notifications";
 import type { ReconcileReport } from "@/lib/os/snapshot";
 import { newId } from "@/lib/utils/ulid";
+
+function resolvePlaylist(ctx: Context): string[] {
+  let paths: string[] = [];
+  if (ctx.musicPaths) {
+    try {
+      const parsed = JSON.parse(ctx.musicPaths) as unknown;
+      if (Array.isArray(parsed)) paths = parsed.filter((p): p is string => typeof p === "string");
+    } catch {
+      paths = [];
+    }
+  }
+  // Back-compat with the single-track musicPath that predates 0004.
+  if (paths.length === 0 && ctx.musicPath) paths = [ctx.musicPath];
+  return paths;
+}
+
+function shuffleInPlace<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Playlist auto-advance watcher: polls rodio for sink-empty and re-queues
+// the next round when loop is on. Runs only while multi-track playlists
+// are active; single-track playback uses rodio's native repeat_infinite
+// via the loop_forever flag on audio.play.
+let playlistWatcher: ReturnType<typeof setInterval> | null = null;
+
+function stopPlaylistWatcher(): void {
+  if (playlistWatcher !== null) {
+    clearInterval(playlistWatcher);
+    playlistWatcher = null;
+  }
+}
+
+function startPlaylistWatcher(paths: string[], shuffle: boolean, loop: boolean): void {
+  stopPlaylistWatcher();
+  if (!loop) return; // one-shot pass, nothing to re-queue
+  if (paths.length < 2) return;
+
+  playlistWatcher = setInterval(async () => {
+    try {
+      const empty = await audio.isEmpty();
+      if (!empty) return;
+      const next = shuffle ? shuffleInPlace([...paths]) : [...paths];
+      await audio.play(next[0], false);
+      for (const p of next.slice(1)) {
+        await audio.queue(p);
+      }
+    } catch (err) {
+      console.warn("[focrel] playlist watcher error:", err);
+    }
+  }, 5000);
+}
 
 type SessionState =
   | { phase: "idle" }
@@ -78,8 +135,22 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       if (context.wallpaperPath) {
         await wallpaper.setWallpaper(context.wallpaperPath);
       }
-      if (context.musicPath) {
-        await audio.play(context.musicPath, context.musicLoop === 1);
+      const playlist = resolvePlaylist(context);
+      if (playlist.length > 0) {
+        const order =
+          context.musicShuffle === 1 ? shuffleInPlace([...playlist]) : [...playlist];
+        // For a single-track playlist we can use rodio's built-in repeat
+        // via loop_forever; for multi-track, queue everything serially and
+        // let the watcher handle re-queueing on end when loop is on.
+        if (order.length === 1) {
+          await audio.play(order[0], context.musicLoop === 1);
+        } else {
+          await audio.play(order[0], false);
+          for (const p of order.slice(1)) {
+            await audio.queue(p);
+          }
+          startPlaylistWatcher(playlist, context.musicShuffle === 1, context.musicLoop === 1);
+        }
       }
       if (context.shortcutName) {
         await shortcuts.runShortcut(context.shortcutName);
@@ -147,6 +218,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     if (sessionIdToEnd) {
       set({ state: { phase: "ending", sessionId: sessionIdToEnd } });
     }
+
+    stopPlaylistWatcher();
 
     const snap = await snapshot.loadSnapshot();
 

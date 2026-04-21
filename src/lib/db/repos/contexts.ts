@@ -20,6 +20,8 @@ type ContextRow = {
   schedule_days: string;
   schedule_auto_start: number;
   music_loop: number;
+  music_paths: string;
+  music_shuffle: number;
   created_at: number;
   updated_at: number;
   archived_at: number | null;
@@ -44,6 +46,8 @@ function toContext(row: ContextRow): Context {
     scheduleDays: row.schedule_days,
     scheduleAutoStart: row.schedule_auto_start,
     musicLoop: row.music_loop,
+    musicPaths: row.music_paths,
+    musicShuffle: row.music_shuffle,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -78,9 +82,9 @@ export const contextsRepo = {
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
         schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
-        music_loop,
+        music_loop, music_paths, music_shuffle,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -99,6 +103,8 @@ export const contextsRepo = {
         input.scheduleDays ?? "",
         input.scheduleAutoStart ?? 1,
         input.musicLoop ?? 1,
+        input.musicPaths ?? "[]",
+        input.musicShuffle ?? 0,
         now,
         now,
         input.archivedAt ?? null,
@@ -129,6 +135,8 @@ export const contextsRepo = {
     if (patch.scheduleDays !== undefined) { fields.push("schedule_days = ?"); values.push(patch.scheduleDays); }
     if (patch.scheduleAutoStart !== undefined) { fields.push("schedule_auto_start = ?"); values.push(patch.scheduleAutoStart); }
     if (patch.musicLoop !== undefined) { fields.push("music_loop = ?"); values.push(patch.musicLoop); }
+    if (patch.musicPaths !== undefined) { fields.push("music_paths = ?"); values.push(patch.musicPaths); }
+    if (patch.musicShuffle !== undefined) { fields.push("music_shuffle = ?"); values.push(patch.musicShuffle); }
     if (patch.archivedAt !== undefined) { fields.push("archived_at = ?"); values.push(patch.archivedAt); }
 
     values.push(id);

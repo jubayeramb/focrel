@@ -1,0 +1,2 @@
+ALTER TABLE contexts ADD COLUMN music_paths TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE contexts ADD COLUMN music_shuffle INTEGER NOT NULL DEFAULT 0;

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppPicker } from "@/components/pickers/app-picker";
 import { ColorPicker } from "@/components/pickers/color-picker";
 import { IconPicker } from "@/components/pickers/icon-picker";
-import { MusicPicker } from "@/components/pickers/music-picker";
+import { MusicTrackList } from "@/components/pickers/music-track-list";
 import { ShortcutPicker } from "@/components/pickers/shortcut-picker";
 import { TimePicker } from "@/components/pickers/time-picker";
 import { WallpaperPicker } from "@/components/pickers/wallpaper-picker";
@@ -40,6 +40,8 @@ interface ContextDraft {
   scheduleDays: number[];
   scheduleAutoStart: number;
   musicLoop: number;
+  musicPaths: string[];
+  musicShuffle: number;
 }
 
 const defaultDraft: ContextDraft = {
@@ -59,6 +61,8 @@ const defaultDraft: ContextDraft = {
   scheduleDays: [],
   scheduleAutoStart: 1,
   musicLoop: 1,
+  musicPaths: [],
+  musicShuffle: 0,
 };
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
@@ -109,6 +113,16 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           : [],
         scheduleAutoStart: loaded.scheduleAutoStart,
         musicLoop: loaded.musicLoop,
+        musicPaths: (() => {
+          try {
+            const parsed = JSON.parse(loaded.musicPaths) as unknown;
+            if (Array.isArray(parsed)) return parsed.filter((p): p is string => typeof p === "string");
+          } catch {
+            /* noop */
+          }
+          return loaded.musicPath ? [loaded.musicPath] : [];
+        })(),
+        musicShuffle: loaded.musicShuffle,
       });
     }
 
@@ -179,7 +193,6 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         color: draft.color,
         icon: draft.icon,
         wallpaperPath: draft.wallpaperPath,
-        musicPath: draft.musicPath,
         shortcutName: draft.shortcutName,
         revertShortcutName: draft.revertShortcutName,
         appsToQuit: JSON.stringify(draft.appsToQuit),
@@ -190,6 +203,11 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         scheduleDays: draft.scheduleDays.join(","),
         scheduleAutoStart: draft.scheduleAutoStart,
         musicLoop: draft.musicLoop,
+        musicPaths: JSON.stringify(draft.musicPaths),
+        musicShuffle: draft.musicShuffle,
+        // Keep the legacy single-column in sync with the first track for
+        // pre-0004 consumers (tray-bridge etc. still read musicPath).
+        musicPath: draft.musicPaths[0] ?? null,
       };
       if (isEdit) {
         await contextStore.update(contextId!, payload);
@@ -357,21 +375,35 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
 
           <div className="space-y-1.5">
             <Label>Ambient music</Label>
-            <MusicPicker
-              value={draft.musicPath}
-              onChange={(v) => patch("musicPath", v)}
+            <MusicTrackList
+              paths={draft.musicPaths}
+              onChange={(next) => patch("musicPaths", next)}
               disabled={saving}
             />
-            {draft.musicPath && (
-              <div className="flex items-center justify-between pt-2">
-                <Label htmlFor="music-loop" className="text-sm font-normal cursor-pointer">
-                  Loop the track for the full session
-                </Label>
-                <Switch
-                  id="music-loop"
-                  checked={draft.musicLoop === 1}
-                  onCheckedChange={(next) => patch("musicLoop", next ? 1 : 0)}
-                />
+            {draft.musicPaths.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="music-loop" className="text-sm font-normal cursor-pointer">
+                    Loop for the full session
+                  </Label>
+                  <Switch
+                    id="music-loop"
+                    checked={draft.musicLoop === 1}
+                    onCheckedChange={(next) => patch("musicLoop", next ? 1 : 0)}
+                  />
+                </div>
+                {draft.musicPaths.length > 1 && (
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="music-shuffle" className="text-sm font-normal cursor-pointer">
+                      Shuffle tracks
+                    </Label>
+                    <Switch
+                      id="music-shuffle"
+                      checked={draft.musicShuffle === 1}
+                      onCheckedChange={(next) => patch("musicShuffle", next ? 1 : 0)}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -5,10 +5,12 @@ use std::sync::mpsc::{self, Sender};
 
 enum AudioCmd {
     Play { path: String, loop_forever: bool },
+    Queue { path: String },
     Pause,
     Resume,
     Stop,
     SetVolume(f32),
+    IsEmpty(std::sync::mpsc::Sender<bool>),
 }
 
 static AUDIO_TX: OnceCell<Mutex<Sender<AudioCmd>>> = OnceCell::new();
@@ -67,6 +69,27 @@ fn audio_sender() -> AppResult<parking_lot::MutexGuard<'static, Sender<AudioCmd>
                                 }
                             }
                         }
+                        AudioCmd::Queue { path } => {
+                            // Append to the existing sink so tracks play
+                            // back-to-back without a gap. Create a sink if
+                            // one doesn't exist yet.
+                            if sink.is_none() {
+                                if let Ok(s) = Sink::try_new(&stream_handle) {
+                                    sink = Some(s);
+                                } else {
+                                    log::error!("audio: sink creation failed on queue");
+                                    continue;
+                                }
+                            }
+                            let s = sink.as_ref().unwrap();
+                            match std::fs::File::open(&path) {
+                                Ok(file) => match Decoder::new(std::io::BufReader::new(file)) {
+                                    Ok(src) => s.append(src),
+                                    Err(e) => log::error!("audio: decode failed for queued {path}: {e}"),
+                                },
+                                Err(e) => log::error!("audio: open failed for queued {path}: {e}"),
+                            }
+                        }
                         AudioCmd::Pause => {
                             if let Some(s) = &sink {
                                 s.pause();
@@ -86,6 +109,10 @@ fn audio_sender() -> AppResult<parking_lot::MutexGuard<'static, Sender<AudioCmd>
                             if let Some(s) = &sink {
                                 s.set_volume(v);
                             }
+                        }
+                        AudioCmd::IsEmpty(tx) => {
+                            let empty = sink.as_ref().map(|s| s.empty()).unwrap_or(true);
+                            let _ = tx.send(empty);
                         }
                     }
                 }
@@ -110,6 +137,19 @@ pub fn audio_play(path: String, loop_forever: Option<bool>) -> AppResult<()> {
         path,
         loop_forever: loop_forever.unwrap_or(false),
     })
+}
+
+#[tauri::command]
+pub fn audio_queue(path: String) -> AppResult<()> {
+    send(AudioCmd::Queue { path })
+}
+
+#[tauri::command]
+pub fn audio_is_empty() -> AppResult<bool> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    send(AudioCmd::IsEmpty(tx))?;
+    rx.recv_timeout(std::time::Duration::from_millis(500))
+        .map_err(|_| AppError::AudioDevice("audio thread did not respond to IsEmpty".into()))
 }
 
 #[tauri::command]

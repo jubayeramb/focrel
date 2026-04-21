@@ -4,7 +4,10 @@ mod session;
 mod tray;
 
 use commands::apps::{get_app_icon, list_installed_apps, list_running_apps, quit_apps};
-use commands::audio::{audio_pause, audio_play, audio_resume, audio_seek, audio_set_volume, audio_stop};
+use commands::audio::{
+    audio_is_empty, audio_pause, audio_play, audio_queue, audio_resume, audio_seek,
+    audio_set_volume, audio_stop,
+};
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
 use commands::tray_cmds::{
     tray_set_contexts, tray_set_end_enabled, tray_set_music_state, tray_set_session_label,
@@ -60,6 +63,8 @@ pub fn run() {
             audio_stop,
             audio_set_volume,
             audio_seek,
+            audio_queue,
+            audio_is_empty,
             run_shortcut,
             list_shortcuts,
             open_shortcuts_app,
