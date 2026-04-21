@@ -5,7 +5,6 @@ import {
   createRoute,
   createRouter,
   useNavigate,
-  useRouterState,
 } from "@tanstack/react-router";
 import { ContextEditorPage } from "@/routes/contexts/editor";
 import { ContextHistoryPage } from "@/routes/contexts/history";
@@ -22,8 +21,8 @@ import { useSettingsStore } from "@/lib/stores/settings-store";
 function OnboardingGate() {
   const hydrated = useSettingsStore((s) => s.hydrated);
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
-  const routerState = useRouterState();
   const navigate = useNavigate();
+  const hasRedirectedRef = React.useRef(false);
 
   React.useEffect(() => {
     // Wait until settings have been read from plugin-store. Otherwise the
@@ -31,9 +30,13 @@ function OnboardingGate() {
     // resolves, re-prompting users who've already completed onboarding.
     if (!hydrated) return;
     if (onboardingCompleted) return;
-    if (routerState.location.pathname === "/onboarding") return;
+    if (hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
+    // Redirect ONCE per session. After the initial nudge, users can click
+    // sidebar items to explore the app freely — the onboarding replay
+    // button in Settings is always available.
     void navigate({ to: "/onboarding" });
-  }, [hydrated, onboardingCompleted, routerState.location.pathname, navigate]);
+  }, [hydrated, onboardingCompleted, navigate]);
 
   return null;
 }
