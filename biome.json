@@ -4,10 +4,15 @@
   "files": {
     "ignore": [
       "node_modules",
-      "dist",
-      "src-tauri/target",
-      "src-tauri/gen",
-      "src/components/ui"
+      "**/node_modules",
+      "**/dist",
+      "**/.next",
+      "**/.turbo",
+      "apps/desktop/src-tauri/target",
+      "apps/desktop/src-tauri/gen",
+      "apps/desktop/src/components/ui",
+      "apps/web/.next",
+      "apps/web/next-env.d.ts"
     ]
   },
   "formatter": {

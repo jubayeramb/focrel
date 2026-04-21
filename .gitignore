@@ -5,8 +5,13 @@ node_modules/
 # Build outputs
 dist/
 dist-ssr/
-src-tauri/target/
-src-tauri/gen/
+.next/
+.turbo/
+**/dist/
+**/.next/
+**/.turbo/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
 
 # Env
 .env
@@ -28,8 +33,8 @@ npm-debug.log*
 pnpm-debug.log*
 
 # Tauri
-src-tauri/Cargo.lock
-!src-tauri/Cargo.lock
+apps/desktop/src-tauri/Cargo.lock
+!apps/desktop/src-tauri/Cargo.lock
 
 # Generated
 *.tsbuildinfo
