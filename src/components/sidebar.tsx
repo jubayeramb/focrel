@@ -63,9 +63,12 @@ function NavItem({ icon, label, path }: NavItemProps) {
       onClick={() => void navigate({ to: path })}
       className={cn(
         "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        // `bg-accent` is only 2% darker than `--sidebar` in light mode, which
+        // made the active row invisible. A primary-tinted background works in
+        // both modes and matches standard macOS sidebar conventions.
         isActive
-          ? "bg-accent text-accent-foreground font-medium"
-          : "text-foreground hover:bg-accent/50",
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-foreground hover:bg-accent",
       )}
     >
       {icon}

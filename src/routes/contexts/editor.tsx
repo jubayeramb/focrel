@@ -5,6 +5,7 @@ import { TaskFilters } from "@/components/task-filters";
 import { TaskList } from "@/components/task-list";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AppPicker } from "@/components/pickers/app-picker";
 import { ColorPicker } from "@/components/pickers/color-picker";
@@ -449,12 +450,10 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="schedule-enabled">Schedule this session</Label>
-            <input
+            <Switch
               id="schedule-enabled"
-              type="checkbox"
               checked={draft.scheduleEnabled === 1}
-              onChange={(e) => patch("scheduleEnabled", e.target.checked ? 1 : 0)}
-              className="h-4 w-4 rounded border-input accent-primary"
+              onCheckedChange={(next) => patch("scheduleEnabled", next ? 1 : 0)}
             />
           </div>
 
@@ -504,12 +503,10 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
                     Off — send a notification instead
                   </p>
                 </div>
-                <input
+                <Switch
                   id="schedule-auto-start"
-                  type="checkbox"
                   checked={draft.scheduleAutoStart === 1}
-                  onChange={(e) => patch("scheduleAutoStart", e.target.checked ? 1 : 0)}
-                  className="h-4 w-4 rounded border-input accent-primary"
+                  onCheckedChange={(next) => patch("scheduleAutoStart", next ? 1 : 0)}
                 />
               </div>
             </>

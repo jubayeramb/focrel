@@ -20,7 +20,6 @@ interface SessionPageProps {
 export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
   const sessionStore = useSessionStore();
   const { state, lastError, clearError } = sessionStore;
-  const getById = useContextStore((s) => s.getById);
   const contexts = useContextStore((s) => s.contexts);
   const navigate = useNavigate();
 
@@ -81,28 +80,6 @@ export function SessionPage({ contextId, onEndSession }: SessionPageProps) {
     setBreakOpen(false);
     setEndInitialReason("completed");
     setEndDialogOpen(true);
-  }
-
-  if (state.phase === "active" && state.contextId !== contextId) {
-    const otherContext = getById(state.contextId);
-    const otherName = otherContext?.name ?? state.contextId;
-    return (
-      <div className="flex flex-col items-center gap-4 py-16">
-        <p className="text-sm text-muted-foreground text-center">
-          A session is already running for <span className="font-medium">{otherName}</span>.
-          End it to start a new one.
-        </p>
-        <Button variant="outline" onClick={() => handleEndRequest(false)}>
-          End running session
-        </Button>
-        <EndSessionDialog
-          open={endDialogOpen}
-          initialReason={endInitialReason}
-          onSave={handleEndDialogSave}
-          onCancel={() => setEndDialogOpen(false)}
-        />
-      </div>
-    );
   }
 
   return (
