@@ -1,5 +1,15 @@
 import * as React from "react";
-import { Music, Pause, Play, Repeat, Square } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  Music,
+  Pause,
+  Play,
+  Repeat,
+  Square,
+} from "lucide-react";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +18,9 @@ import { audio } from "@/lib/os";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useContextStore } from "@/lib/stores/context-store";
 import { useSessionTimer } from "@/lib/hooks/use-session-timer";
+
+const FULL_SIZE = { width: 1100, height: 720 };
+const MINI_SIZE = { width: 420, height: 480 };
 
 type ActiveSessionViewProps = {
   sessionId: string;
@@ -57,6 +70,31 @@ export function ActiveSessionView({
   const [isPlaying, setIsPlaying] = React.useState(hasMusicPath);
   const [volume, setVolume] = React.useState(0.6);
   const [loopEnabled, setLoopEnabled] = React.useState(true);
+  const [miniMode, setMiniMode] = React.useState(false);
+
+  async function toggleMiniMode() {
+    const win = getCurrentWebviewWindow();
+    const target = miniMode ? FULL_SIZE : MINI_SIZE;
+    try {
+      await win.setSize(new LogicalSize(target.width, target.height));
+      await win.setAlwaysOnTop(!miniMode);
+      setMiniMode(!miniMode);
+    } catch (err) {
+      console.error("[focrel] mini-mode toggle failed:", err);
+    }
+  }
+
+  React.useEffect(() => {
+    // Restore full window if the component unmounts while in mini mode.
+    return () => {
+      if (!miniMode) return;
+      const win = getCurrentWebviewWindow();
+      void win.setSize(new LogicalSize(FULL_SIZE.width, FULL_SIZE.height));
+      void win.setAlwaysOnTop(false);
+    };
+    // Intentionally empty deps: cleanup runs only on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function togglePlayPause() {
     if (isPlaying) {
@@ -94,8 +132,82 @@ export function ActiveSessionView({
     ? `+${formatMmSs(elapsedSeconds - plannedDurationMinutes * 60)}`
     : formatMmSs(remainingSeconds);
 
+  if (miniMode) {
+    return (
+      <div className="flex flex-col gap-3 h-full">
+        <div className="flex items-center justify-between">
+          <span
+            className={cn(
+              "text-3xl font-thin tabular-nums tracking-tight",
+              isOvertime ? "text-amber-500" : "text-foreground",
+            )}
+          >
+            {timerDisplay}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => void toggleMiniMode()}
+            aria-label="Exit mini mode"
+          >
+            <Maximize2 className="size-4" />
+          </Button>
+        </div>
+        <div className="h-1 rounded-full bg-muted overflow-hidden">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-1000",
+              isOvertime ? "bg-amber-500" : "bg-primary",
+            )}
+            style={{
+              width: `${progress01 * 100}%`,
+              ...(!isOvertime && { backgroundColor: "var(--accent-ctx, hsl(var(--primary)))" }),
+            }}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto app-scroll">
+          {sessionTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No tasks.</p>
+          ) : (
+            <ul className="space-y-1">
+              {sessionTasks.map((task) => (
+                <li key={task.id}>
+                  <TaskRow task={task} onDelete={() => {}} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          onClick={() => onRequestEnd(false)}
+        >
+          End session
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto py-4 pb-20">
+      {/* Mini-mode entry */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => void toggleMiniMode()}
+          className="text-xs text-muted-foreground"
+        >
+          <Minimize2 className="size-3.5" />
+          Mini mode
+        </Button>
+      </div>
+
       {/* Timer card */}
       <Card>
         <CardContent className="pt-8 pb-6 flex flex-col items-center gap-4">
