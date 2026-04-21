@@ -86,8 +86,18 @@ export function Sidebar() {
       style={{ backgroundColor: "hsl(var(--sidebar))" }}
     >
       {/* Wordmark */}
-      <div className="px-4 pt-3 pb-2">
-        <span className="text-lg font-semibold select-none">Focrel</span>
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2 select-none">
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-md",
+            "bg-gradient-to-br from-violet-500 via-indigo-600 to-slate-900",
+            "text-[11px] font-semibold text-white shadow-sm",
+          )}
+          aria-hidden
+        >
+          F
+        </span>
+        <span className="text-base font-semibold tracking-tight">Focrel</span>
       </div>
 
       {/* Active session pill */}
