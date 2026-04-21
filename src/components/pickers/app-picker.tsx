@@ -1,3 +1,4 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { RefreshCw, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RunningApp } from "@/lib/os/apps";
@@ -143,6 +144,7 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
                 onChange={() => toggle(app.bundleId)}
                 className="rounded border-input accent-primary"
               />
+              <AppIcon bundleId={app.bundleId} bundlePath={app.bundlePath} name={app.name} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{app.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{app.bundleId}</p>
@@ -151,6 +153,65 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Module-level cache so re-mounts (filter changes, etc.) don't re-invoke the
+// Rust-side sips conversion.
+const iconCache = new Map<string, string | null>();
+
+function AppIcon({
+  bundleId,
+  bundlePath,
+  name,
+}: {
+  bundleId: string;
+  bundlePath?: string;
+  name: string;
+}) {
+  const [src, setSrc] = useState<string | null>(iconCache.get(bundleId) ?? null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (src || failed || !bundlePath) return;
+    if (iconCache.has(bundleId)) {
+      const cached = iconCache.get(bundleId);
+      if (cached) setSrc(cached);
+      else setFailed(true);
+      return;
+    }
+    let cancelled = false;
+    void apps.getAppIcon(bundleId, bundlePath).then((path) => {
+      if (cancelled) return;
+      if (path) {
+        const url = convertFileSrc(path);
+        iconCache.set(bundleId, url);
+        setSrc(url);
+      } else {
+        iconCache.set(bundleId, null);
+        setFailed(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bundleId, bundlePath, src, failed]);
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className="size-6 rounded-md shrink-0"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  const letter = (name[0] ?? "?").toUpperCase();
+  return (
+    <div className="size-6 rounded-md bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0">
+      {letter}
     </div>
   );
 }

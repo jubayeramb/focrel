@@ -1,12 +1,15 @@
 use crate::error::{AppError, AppResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunningApp {
     pub bundle_id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bundle_path: Option<String>,
 }
 
 #[tauri::command]
@@ -66,7 +69,11 @@ fn parse_lsappinfo(output: &str) -> Vec<RunningApp> {
         if line.is_empty() {
             if let (Some(bundle_id), Some(name)) = (current_bundle.take(), current_name.take()) {
                 if !bundle_id.is_empty() {
-                    apps.push(RunningApp { bundle_id, name });
+                    apps.push(RunningApp {
+                        bundle_id,
+                        name,
+                        bundle_path: None,
+                    });
                 }
             }
         }
@@ -75,7 +82,11 @@ fn parse_lsappinfo(output: &str) -> Vec<RunningApp> {
     // Flush last block (no trailing blank line).
     if let (Some(bundle_id), Some(name)) = (current_bundle, current_name) {
         if !bundle_id.is_empty() {
-            apps.push(RunningApp { bundle_id, name });
+            apps.push(RunningApp {
+                bundle_id,
+                name,
+                bundle_path: None,
+            });
         }
     }
 
@@ -178,5 +189,94 @@ async fn read_bundle_info(plist_path: &Path, bundle_path: &Path) -> Option<Runni
                 .to_string()
         });
 
-    Some(RunningApp { bundle_id, name })
+    Some(RunningApp {
+        bundle_id,
+        name,
+        bundle_path: Some(bundle_path.to_string_lossy().into_owned()),
+    })
+}
+
+/// Converts a .app's icon to a cached PNG and returns the cache path.
+/// Returns None if the bundle has no resolvable icon. Results are cached per
+/// bundle_id under `<app_data_dir>/app-icons/` so subsequent calls are
+/// instantaneous — only first lookup runs `sips`.
+#[tauri::command]
+pub async fn get_app_icon(
+    app: AppHandle,
+    bundle_id: String,
+    bundle_path: String,
+) -> AppResult<Option<String>> {
+    let cache_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::TauriApi(e.to_string()))?
+        .join("app-icons");
+    std::fs::create_dir_all(&cache_dir)?;
+
+    let safe_name = bundle_id.replace(['/', ':'], "_");
+    let cache_path = cache_dir.join(format!("{safe_name}.png"));
+    if cache_path.exists() {
+        return Ok(Some(cache_path.to_string_lossy().into_owned()));
+    }
+
+    let icns_path = match resolve_icon_path(&bundle_path).await {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+
+    let out = tokio::process::Command::new("sips")
+        .args(["-s", "format", "png", "-Z", "128"])
+        .arg(&icns_path)
+        .arg("--out")
+        .arg(&cache_path)
+        .output()
+        .await
+        .map_err(|e| AppError::Other(format!("sips spawn failed: {e}")))?;
+
+    if !out.status.success() {
+        log::warn!(
+            "sips failed for {bundle_id} ({}): {}",
+            icns_path.display(),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        return Ok(None);
+    }
+
+    Ok(Some(cache_path.to_string_lossy().into_owned()))
+}
+
+async fn resolve_icon_path(bundle_path: &str) -> Option<PathBuf> {
+    let plist_path = Path::new(bundle_path).join("Contents/Info.plist");
+    if !plist_path.exists() {
+        return None;
+    }
+    let output = tokio::process::Command::new("plutil")
+        .args(["-convert", "json", "-o", "-"])
+        .arg(&plist_path)
+        .output()
+        .await
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    let mut icon_name = json
+        .get("CFBundleIconFile")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    if icon_name.is_empty() {
+        // CFBundleIconName is the modern asset-catalog variant (newer macOS
+        // apps). Without asset-catalog decoding we can't resolve it, so skip.
+        return None;
+    }
+    if !icon_name.ends_with(".icns") {
+        icon_name.push_str(".icns");
+    }
+    let resources = Path::new(bundle_path).join("Contents/Resources");
+    let candidate = resources.join(&icon_name);
+    if candidate.exists() {
+        return Some(candidate);
+    }
+    None
 }
