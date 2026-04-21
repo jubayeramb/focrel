@@ -100,7 +100,10 @@ export function ActiveSessionView({
                 "h-full rounded-full transition-all duration-1000",
                 isOvertime ? "bg-amber-500" : "bg-primary",
               )}
-              style={{ width: `${progress01 * 100}%` }}
+              style={{
+                width: `${progress01 * 100}%`,
+                ...(!isOvertime && { backgroundColor: "var(--accent-ctx, hsl(var(--primary)))" }),
+              }}
             />
           </div>
           {isOvertime && (

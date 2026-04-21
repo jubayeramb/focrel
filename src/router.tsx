@@ -1,19 +1,45 @@
+import * as React from "react";
 import {
   createMemoryHistory,
   createRootRoute,
   createRoute,
   createRouter,
+  useNavigate,
+  useRouterState,
 } from "@tanstack/react-router";
 import { ContextEditorPage } from "@/routes/contexts/editor";
 import { ContextHistoryPage } from "@/routes/contexts/history";
 import { ContextsPage } from "@/routes/contexts/index";
 import { HomePage } from "@/routes/home";
+import { OnboardingPage } from "@/routes/onboarding";
 import { RootLayout } from "@/routes/root";
 import { SessionPage } from "@/routes/session";
 import { SettingsPage } from "@/routes/settings";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+
+function OnboardingGate() {
+  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  const routerState = useRouterState();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!onboardingCompleted && routerState.location.pathname !== "/onboarding") {
+      void navigate({ to: "/onboarding" });
+    }
+  }, [onboardingCompleted, routerState.location.pathname, navigate]);
+
+  return null;
+}
 
 const rootRoute = createRootRoute({
-  component: RootLayout,
+  component: function Root() {
+    return (
+      <>
+        <OnboardingGate />
+        <RootLayout />
+      </>
+    );
+  },
 });
 
 const homeRoute = createRoute({
@@ -129,6 +155,23 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const onboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/onboarding",
+  component: function Onboarding() {
+    const navigate = onboardingRoute.useNavigate();
+    const markOnboardingComplete = useSettingsStore((s) => s.markOnboardingComplete);
+    return (
+      <OnboardingPage
+        onComplete={() => {
+          markOnboardingComplete();
+          void navigate({ to: "/" });
+        }}
+      />
+    );
+  },
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   sessionRoute,
@@ -137,6 +180,7 @@ const routeTree = rootRoute.addChildren([
   contextsEditRoute,
   contextsHistoryRoute,
   settingsRoute,
+  onboardingRoute,
 ]);
 
 export const router = createRouter({

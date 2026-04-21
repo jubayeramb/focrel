@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { contextsRepo, sessionsRepo } from "@/lib/db";
 import { wallpaper, audio, shortcuts, apps, snapshot } from "@/lib/os";
+import { notify } from "@/lib/os/notifications";
 import type { ReconcileReport } from "@/lib/os/snapshot";
 import { newId } from "@/lib/utils/ulid";
 
@@ -95,6 +96,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
           taskIds,
         },
       });
+
+      void notify("Focus session started", context.name).catch(() => {});
     } catch (err) {
       try {
         await get().end("abandoned");
@@ -136,6 +139,15 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     if (sessionIdToEnd) {
       await sessionsRepo.end(sessionIdToEnd, endReason, notes);
+    }
+
+    if (endReason === "completed" && snap?.contextId) {
+      const ctx = await contextsRepo.get(snap.contextId);
+      if (ctx) {
+        const durationMs = snap.startedAt ? Date.now() - snap.startedAt : 0;
+        const durationText = `${Math.round(durationMs / 60_000)}m`;
+        void notify("Session complete", `${ctx.name} · ${durationText}`).catch(() => {});
+      }
     }
 
     await snapshot.clearSnapshot();
