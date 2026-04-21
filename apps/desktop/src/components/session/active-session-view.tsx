@@ -14,9 +14,9 @@ import { LogicalSize } from "@tauri-apps/api/dpi";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { audio } from "@/lib/os";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useContextStore } from "@/lib/stores/context-store";
+import { useMusicStore } from "@/lib/stores/music-store";
 import { useSessionTimer } from "@/lib/hooks/use-session-timer";
 
 const FULL_SIZE = { width: 1100, height: 720 };
@@ -83,14 +83,18 @@ export function ActiveSessionView({
   const musicPath = context?.musicPath ?? null;
   const hasMusicPath = musicPath !== null;
 
-  const [isPlaying, setIsPlaying] = React.useState(hasMusicPath);
-  const [volume, setVolume] = React.useState(0.6);
-  const [loopEnabled, setLoopEnabled] = React.useState(true);
+  // Music playback state is owned by useMusicStore so the session view and
+  // the tray menu stay in sync — toggling from either surface flows through
+  // the same actions and both re-render on the same state change.
+  const isPlaying = useMusicStore((s) => s.isPlaying);
+  const volume = useMusicStore((s) => s.volume);
+  const loopEnabled = useMusicStore((s) => s.loop);
+  const toggleMusic = useMusicStore((s) => s.toggle);
+  const stopMusic = useMusicStore((s) => s.stop);
+  const setMusicLoop = useMusicStore((s) => s.setLoop);
+  const setMusicVolume = useMusicStore((s) => s.setVolume);
+
   const [miniMode, setMiniMode] = React.useState(false);
-  // Track whether the Rust sink is alive. After Stop the sink is dropped, so
-  // Play needs a fresh decode; on Pause the sink is preserved and Resume
-  // picks up where it left off — we shouldn't restart the track.
-  const [sinkAlive, setSinkAlive] = React.useState(hasMusicPath);
 
   async function toggleMiniMode() {
     const win = getCurrentWebviewWindow();
@@ -116,44 +120,9 @@ export function ActiveSessionView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function togglePlayPause() {
-    if (isPlaying) {
-      await audio.pause();
-      setIsPlaying(false);
-    } else if (musicPath !== null) {
-      if (sinkAlive) {
-        await audio.resume();
-      } else {
-        await audio.play(musicPath, loopEnabled);
-        setSinkAlive(true);
-      }
-      setIsPlaying(true);
-    }
-  }
-
-  async function toggleLoop() {
-    const next = !loopEnabled;
-    setLoopEnabled(next);
-    // Loop state is baked into the rodio source at play time, so to apply a
-    // toggle mid-track we DO have to restart — rodio can't flip loop on an
-    // existing Sink. Only do this if currently playing to avoid surprising
-    // the user by restarting paused music.
-    if (isPlaying && musicPath !== null) {
-      await audio.play(musicPath, next);
-      setSinkAlive(true);
-    }
-  }
-
   async function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = parseFloat(e.target.value);
-    setVolume(v);
-    await audio.setVolume(v);
-  }
-
-  async function handleStopAudio() {
-    await audio.stop();
-    setIsPlaying(false);
-    setSinkAlive(false);
+    await setMusicVolume(v);
   }
 
   const timerDisplay = isOvertime
@@ -253,7 +222,7 @@ export function ActiveSessionView({
               variant="ghost"
               size="icon"
               className="size-7"
-              onClick={() => void togglePlayPause()}
+              onClick={() => void toggleMusic()}
               aria-label={isPlaying ? "Pause music" : "Play music"}
             >
               {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
@@ -274,7 +243,7 @@ export function ActiveSessionView({
               variant="ghost"
               size="icon"
               className={cn("size-7", loopEnabled ? "text-primary" : "text-muted-foreground")}
-              onClick={() => void toggleLoop()}
+              onClick={() => void setMusicLoop(!loopEnabled)}
               aria-label={loopEnabled ? "Disable loop" : "Enable loop"}
             >
               <Repeat className="size-3.5" />
@@ -284,7 +253,7 @@ export function ActiveSessionView({
               variant="ghost"
               size="icon"
               className="size-7"
-              onClick={() => void handleStopAudio()}
+              onClick={() => void stopMusic()}
               aria-label="Stop music"
             >
               <Square className="size-3.5" />
@@ -386,7 +355,7 @@ export function ActiveSessionView({
             variant="ghost"
             size="icon"
             className="size-7"
-            onClick={() => void togglePlayPause()}
+            onClick={() => void toggleMusic()}
             aria-label={isPlaying ? "Pause music" : "Play music"}
           >
             {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
@@ -407,7 +376,7 @@ export function ActiveSessionView({
             variant="ghost"
             size="icon"
             className={cn("size-7", loopEnabled ? "text-primary" : "text-muted-foreground")}
-            onClick={() => void toggleLoop()}
+            onClick={() => void setMusicLoop(!loopEnabled)}
             aria-label={loopEnabled ? "Disable loop" : "Enable loop"}
           >
             <Repeat className="size-3.5" />
@@ -417,7 +386,7 @@ export function ActiveSessionView({
             variant="ghost"
             size="icon"
             className="size-7"
-            onClick={() => void handleStopAudio()}
+            onClick={() => void stopMusic()}
             aria-label="Stop music"
           >
             <Square className="size-3.5" />

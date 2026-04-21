@@ -4,6 +4,7 @@ import type { Context } from "@/lib/db";
 import { wallpaper, audio, shortcuts, apps, snapshot } from "@/lib/os";
 import { notify } from "@/lib/os/notifications";
 import type { ReconcileReport } from "@/lib/os/snapshot";
+import { useMusicStore } from "@/lib/stores/music-store";
 import { newId } from "@/lib/utils/ulid";
 
 function resolvePlaylist(ctx: Context): string[] {
@@ -151,6 +152,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
           }
           startPlaylistWatcher(playlist, context.musicShuffle === 1, context.musicLoop === 1);
         }
+        // Seed the shared music store so the session view and the tray read
+        // the same isPlaying/sinkAlive/loop from the first frame.
+        useMusicStore.getState().setPlaying(order[0], context.musicLoop === 1);
       }
       if (context.shortcutName) {
         await shortcuts.runShortcut(context.shortcutName);
@@ -229,6 +233,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       }
 
       await audio.stop();
+      useMusicStore.getState().clear();
 
       if (snap.focusToggledByUs && snap.revertShortcutName) {
         await shortcuts.runShortcut(snap.revertShortcutName);

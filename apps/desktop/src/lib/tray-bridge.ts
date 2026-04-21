@@ -1,20 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import { audio } from "./os";
 import { useContextStore } from "./stores/context-store";
+import { useMusicStore } from "./stores/music-store";
 import { useSessionStore } from "./stores/session-store";
 
 type TrayContext = { id: string; name: string };
-
-// Module-level music playback state that lives alongside the active session
-// so the tray can reflect play/pause without the UI mounting a component.
-let musicIsPlaying = false;
-let musicCurrentPath: string | null = null;
-let musicLoopForever = true;
-// Track whether the Rust sink is alive — after Stop we need a fresh Play,
-// after Pause we only Resume so the track continues from where it paused.
-let musicSinkAlive = false;
 
 function logInvoke(cmd: string, args: Record<string, unknown>) {
   invoke(cmd, args).catch((err) => {
@@ -31,10 +22,13 @@ function syncContexts() {
   logInvoke("tray_set_contexts", { contexts: active });
 }
 
+// Pushes the current music-store state into the Rust-side tray menu.
+// Called whenever the store changes — single source of truth.
 function syncMusicMenu() {
+  const { path, isPlaying } = useMusicStore.getState();
   logInvoke("tray_set_music_state", {
-    available: musicCurrentPath !== null,
-    isPlaying: musicIsPlaying,
+    available: path !== null,
+    isPlaying,
   });
 }
 
@@ -46,25 +40,18 @@ function syncSession() {
     const ctx = useContextStore.getState().getById(state.contextId);
     const ctxName = ctx?.name ?? "Focus";
 
-    musicCurrentPath = ctx?.musicPath ?? null;
-    musicIsPlaying = musicCurrentPath !== null;
-    musicLoopForever = (ctx?.musicLoop ?? 1) === 1;
-    musicSinkAlive = musicIsPlaying;
-
     logInvoke("tray_set_end_enabled", { enabled: true });
     // Rust-side ticker owns the 1s label refresh so it doesn't drift when
     // the webview is hidden (browsers throttle JS setInterval to ~2s when
     // the window is minimized / backgrounded).
     logInvoke("tray_start_ticker", { startedAt: state.startedAt, ctxName });
-    syncMusicMenu();
   } else {
-    musicCurrentPath = null;
-    musicIsPlaying = false;
     logInvoke("tray_stop_ticker", {});
     logInvoke("tray_set_end_enabled", { enabled: false });
     logInvoke("tray_set_session_label", { label: "No active session" });
-    syncMusicMenu();
   }
+  // Music state is driven by the music-store → its own subscription handles
+  // tray syncing; no need to re-sync here.
 }
 
 export function initTrayBridge(): void {
@@ -82,36 +69,25 @@ export function initTrayBridge(): void {
     void useSessionStore.getState().end("interrupted");
   });
 
+  // Tray music controls delegate to the shared store — toggling here flows
+  // the same code path the session view uses, so both surfaces re-render in
+  // lockstep.
   void listen("focrel://tray-music-toggle", () => {
-    if (musicCurrentPath === null) return;
-    if (musicIsPlaying) {
-      void audio.pause();
-      musicIsPlaying = false;
-    } else if (musicSinkAlive) {
-      void audio.resume();
-      musicIsPlaying = true;
-    } else {
-      void audio.play(musicCurrentPath, musicLoopForever);
-      musicSinkAlive = true;
-      musicIsPlaying = true;
-    }
-    syncMusicMenu();
+    void useMusicStore.getState().toggle();
   });
 
   void listen("focrel://tray-music-stop", () => {
-    void audio.stop();
-    musicIsPlaying = false;
-    musicSinkAlive = false;
-    syncMusicMenu();
+    void useMusicStore.getState().stop();
   });
 
   useContextStore.subscribe(syncContexts);
   useSessionStore.subscribe(syncSession);
+  useMusicStore.subscribe(syncMusicMenu);
 
-  // Zustand's subscribe only fires on subsequent changes. Because init runs
-  // AFTER contexts load and AFTER the resume-on-launch path can flip session
-  // to 'active', the subscriptions would never see the initial state.
-  // Invoke once explicitly so the tray menu reflects reality at startup.
+  // Zustand's subscribe only fires on subsequent changes. Init runs after
+  // stores hydrate, so we wouldn't see initial state otherwise — push it
+  // once explicitly.
   syncContexts();
   syncSession();
+  syncMusicMenu();
 }
