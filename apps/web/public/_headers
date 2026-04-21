@@ -1,0 +1,19 @@
+# Served by Cloudflare Pages. Next.js static export emits the OG image as an
+# extensionless file (/opengraph-image), so we set the MIME type explicitly —
+# otherwise CF falls back to application/octet-stream and social scrapers skip it.
+
+/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=3600, s-maxage=86400
+
+# Static asset caching — _next/static/* is content-hashed, so we can cache forever.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Security defaults. CSP stays open for now; tighten once we know every origin
+# the marketing site pulls from (analytics, embedded demos, etc.).
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
