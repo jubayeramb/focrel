@@ -47,14 +47,15 @@ const homeRoute = createRoute({
   path: "/",
   component: function Home() {
     const navigate = homeRoute.useNavigate();
+    const goToSession = (contextId: string) =>
+      void navigate({ to: "/session", search: { contextId } });
     return (
       <HomePage
         onNavigateToNewContext={() => {
           void navigate({ to: "/contexts/new" });
         }}
-        onStartSession={(contextId) => {
-          void navigate({ to: "/session", search: { contextId } });
-        }}
+        onStartSession={goToSession}
+        onSessionStarted={goToSession}
       />
     );
   },

@@ -13,6 +13,7 @@ import { MusicPicker } from "@/components/pickers/music-picker";
 import { ShortcutPicker } from "@/components/pickers/shortcut-picker";
 import { WallpaperPicker } from "@/components/pickers/wallpaper-picker";
 import { useContextStore } from "@/lib/stores/context-store";
+import { shortcuts } from "@/lib/os";
 
 interface ContextEditorPageProps {
   contextId?: string;
@@ -341,25 +342,47 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
 
           <div className="space-y-1.5">
             <Label>Focus shortcut (on session start)</Label>
-            <ShortcutPicker
-              value={draft.shortcutName}
-              onChange={(v) => patch("shortcutName", v)}
-              disabled={saving}
-            />
+            <div className="flex items-center gap-2">
+              <ShortcutPicker
+                value={draft.shortcutName}
+                onChange={(v) => patch("shortcutName", v)}
+                disabled={saving}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!draft.shortcutName}
+                onClick={() => draft.shortcutName && void shortcuts.runShortcut(draft.shortcutName)}
+              >
+                Test
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label>Revert shortcut (on session end)</Label>
-            <ShortcutPicker
-              value={draft.revertShortcutName}
-              onChange={(v) => patch("revertShortcutName", v)}
-              disabled={saving}
-            />
+            <div className="flex items-center gap-2">
+              <ShortcutPicker
+                value={draft.revertShortcutName}
+                onChange={(v) => patch("revertShortcutName", v)}
+                disabled={saving}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!draft.revertShortcutName}
+                onClick={() =>
+                  draft.revertShortcutName && void shortcuts.runShortcut(draft.revertShortcutName)
+                }
+              >
+                Test
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              How to create template shortcuts →{" "}
-              <span className="text-foreground/60">
-                Open Shortcuts.app, create an automation, then enter its name above.
-              </span>
+              Shortcuts are created in Apple&apos;s Shortcuts app. Name them anything — just match
+              the name here.
             </p>
           </div>
         </CardContent>

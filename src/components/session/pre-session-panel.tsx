@@ -1,6 +1,7 @@
 import * as React from "react";
-import { AlertTriangle, CheckCircle2, Minus, Music, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Minus, Music, Plus, X } from "lucide-react";
 import { renderIcon } from "@/components/pickers/icon-picker";
+import { TaskAddInput } from "@/components/task-add-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -182,6 +183,7 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
+          <TaskAddInput contextId={contextId} />
           {pendingTasks.length === 0 ? (
             <p className="text-sm text-muted-foreground py-2">No pending tasks.</p>
           ) : (
@@ -189,10 +191,10 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
               {pendingTasks.map((task) => {
                 const isChecked = selected.has(task.id);
                 return (
-                  <li key={task.id}>
+                  <li key={task.id} className="group relative flex items-center">
                     <label
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-2 py-1.5 text-sm cursor-pointer",
+                        "flex flex-1 items-center gap-3 rounded-md px-2 py-1.5 text-sm cursor-pointer",
                         "hover:bg-accent/50 transition-colors",
                       )}
                     >
@@ -204,6 +206,22 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
                       />
                       <span className="flex-1 min-w-0 truncate text-foreground">{task.title}</span>
                     </label>
+                    <button
+                      type="button"
+                      aria-label={`Delete "${task.title}"`}
+                      className={cn(
+                        "size-3.5 shrink-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity",
+                        "text-muted-foreground hover:text-destructive",
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete "${task.title}"?`)) {
+                          void useTaskStore.getState().remove(task.id);
+                        }
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </button>
                   </li>
                 );
               })}

@@ -1,22 +1,30 @@
 import { useEffect } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Play, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContextCard } from "@/components/context-card";
 import { useContextStore } from "@/lib/stores/context-store";
+import { useSessionStore } from "@/lib/stores/session-store";
 
 type HomePageProps = {
   onNavigateToNewContext: () => void;
   onStartSession: (contextId: string) => void;
+  onSessionStarted: (contextId: string) => void;
 };
 
-export function HomePage({ onNavigateToNewContext, onStartSession }: HomePageProps) {
+export function HomePage({ onNavigateToNewContext, onStartSession, onSessionStarted }: HomePageProps) {
   const { contexts, loading, load } = useContextStore();
+  const sessionStore = useSessionStore();
 
   useEffect(() => {
     if (contexts.length === 0 && !loading) load();
   }, []);
 
   const active = contexts.filter((c) => c.archivedAt == null);
+
+  async function quickStart(contextId: string, defaultDurationMinutes: number) {
+    await sessionStore.start({ contextId, plannedDurationMinutes: defaultDurationMinutes, taskIds: [] });
+    onSessionStarted(contextId);
+  }
 
   return (
     <div className="space-y-6">
@@ -34,6 +42,19 @@ export function HomePage({ onNavigateToNewContext, onStartSession }: HomePagePro
               key={c.id}
               context={c}
               onClick={() => onStartSession(c.id)}
+              actions={
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void quickStart(c.id, c.defaultDurationMinutes);
+                  }}
+                >
+                  <Play className="size-3.5" />
+                  Start
+                </Button>
+              }
             />
           ))}
         </div>
