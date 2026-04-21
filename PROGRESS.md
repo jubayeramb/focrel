@@ -4,9 +4,9 @@
 **Plan:** `/Users/jubayer/.claude/plans/focus-app-for-mac-abstract-candy.md`
 **Stack:** Tauri 2.0 + React 18 + TS + Vite + Tailwind + shadcn/ui + SQLite (Drizzle) + Rust (`wallpaper`, `rodio`)
 
-**Current phase:** Week 2 done → Week 3 — Tasks
-**Current task:** Dispatch Week 3 agents — per-context task list UI with drag-reorder, CRUD, keyboard shortcuts, filters.
-**Next action:** Break Week 3 into 2 parallel tracks — Track I (task list component + CRUD + keyboard), Track J (drag-reorder via dnd-kit + due-date/priority pickers + filters).
+**Current phase:** Week 3 done → Week 4 — Session Engine
+**Current task:** Dispatch Week 4 — pre-session task picker, active session UI (timer + tasks + music), end-session log, session history.
+**Next action:** Split Week 4 into 2 parallel tracks — Track K (session start flow + active session view), Track L (end-session log, break prompt, history).
 
 ---
 
@@ -144,32 +144,50 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 ## Week 3 — Tasks
 
 ### Track I — Task list UI + CRUD + keyboard
-- [ ] **I1** `src/lib/stores/task-store.ts` — Zustand store backed by `tasksRepo`; `loadByContext(contextId)`, `create`, `update`, `complete`, `uncomplete`, `remove`, `reorder(contextId, orderedIds)`
-- [ ] **I2** `src/components/task-list.tsx` — presentational list of tasks for a given context; renders a `<TaskRow>` per task
-- [ ] **I3** `src/components/task-row.tsx` — single row: checkbox (status toggle), title (editable inline on double-click or focus), priority dot, due-date badge, delete button on hover
-- [ ] **I4** `src/components/task-add-input.tsx` — "Add task" input pinned to top; `enter` adds, focus-ring visible
-- [ ] **I5** Keyboard shortcuts inside the list: `enter` to add, `cmd+k` to focus add input, `arrow up/down` to navigate rows, `space` to toggle completion, `backspace` on empty title to delete (with confirm)
-- [ ] **I6** Wire `TaskList` into `src/routes/contexts/editor.tsx` as a right-side section (below Behavior) — visible only in edit mode, since new contexts have no id yet
+- [x] **I1** `src/lib/stores/task-store.ts` — Zustand store backed by `tasksRepo`; `loadByContext(contextId)`, `create`, `update`, `setStatus`, `remove`, `reorder(contextId, orderedIds)` with optimistic update; `byContext` keyed map preserves multi-context state
+- [x] **I2** `src/components/task-list.tsx` — task list for a context; renders `TaskAddInput` + `<ul>` of `<li data-task-id>` + `TaskRow`; `statusFilter` prop; keyboard nav on root div
+- [x] **I3** `src/components/task-row.tsx` — checkbox status toggle, inline double-click title edit (blur-to-save, empty-to-delete), priority dot, due-date badge via date-fns, hover delete button, `focused` ring
+- [x] **I4** `src/components/task-add-input.tsx` — controlled input; enter adds task, esc blurs; `forwardRef + useImperativeHandle` exposes `focus()` for cmd+k
+- [x] **I5** Keyboard shortcuts inside the list: `enter`/`cmd+k` to focus add input, `arrow up/down` navigate rows, `space` toggles completion, `backspace` deletes focused row (with confirm); input/textarea targets skipped
+- [x] **I6** Wire `TaskList` into `src/routes/contexts/editor.tsx` Tasks section (below Behavior) — guarded by `{contextId &&}`
 
 ### Track J — Drag-reorder + pickers + filters
-- [ ] **J1** Add `@dnd-kit/core` + `@dnd-kit/sortable` to package.json; install
-- [ ] **J2** `src/components/pickers/due-date-picker.tsx` — BasicPicker<number | null> (unix millis); native `<input type="datetime-local">` wrapped with clear button
-- [ ] **J3** `src/components/pickers/priority-picker.tsx` — BasicPicker<number> (0..3); 4 pill buttons (None / Low / Normal / High)
-- [ ] **J4** Wrap `TaskList` (from I2) with `DndContext` + `SortableContext`; reorder calls `taskStore.reorder(contextId, orderedIds)` via tasksRepo; optimistic update on drop
-- [ ] **J5** `src/components/task-filters.tsx` — segmented control: All / Open / Done; state lifted to parent (TaskList container)
-- [ ] **J6** Ensure drag-reorder + filter + sort play nicely: filter hides rows but preserves underlying order; dragging a visible row across filter boundaries is allowed
+- [x] **J1** Add `@dnd-kit/core` + `@dnd-kit/sortable` to package.json; install
+- [x] **J2** `src/components/pickers/due-date-picker.tsx` — BasicPicker<number | null> (unix millis); native `<input type="datetime-local">` wrapped with clear button
+- [x] **J3** `src/components/pickers/priority-picker.tsx` — BasicPicker<number> (0..3); 4 pill buttons (None / Low / Normal / High)
+- [x] **J4** Wrap `TaskList` with `DndContext` + `SortableContext`; `SortableItem` component with grip handle + `activationConstraint: { distance: 6 }`; reorder calls `taskStore.reorder` optimistically
+- [x] **J5** `src/components/task-filters.tsx` — segmented control: All / Open / Done; state lifted to parent
+- [x] **J6** Filter state lifted into `editor.tsx` (lift path — Track I already ships `statusFilter` as a prop); `<TaskFilters>` rendered in Card header above `<TaskList>`
 
 ### Week 3 — Integration checkpoint
-- [ ] `pnpm typecheck` green
-- [ ] `pnpm build` green
-- [ ] Two scoped commits: `feat(tasks): task list store + rows + CRUD + keyboard`, `feat(tasks): drag-reorder + due-date/priority pickers + filters`
+- [x] `pnpm typecheck` green
+- [x] `pnpm build` green
+- [x] Two scoped commits landed: `feat(tasks): store + sortable list, row, add-input with keyboard nav`, `feat(tasks): due-date / priority pickers, filters, editor integration`
 
 ## Week 4 — Session Engine
-- [ ] Pre-session task picker (choose which tasks to tackle)
-- [ ] Active session view: timer + tasks + music controls + exit button
-- [ ] Pomodoro-style break prompt at duration end
-- [ ] End-session log (endReason, notes)
-- [ ] Session history view per context
+
+### Track K — Session start flow + active session view
+- [ ] **K1** `src/routes/session.tsx` (replace stub) — page-level orchestrator that reads `contextId` from search params, subscribes to `useSessionStore`, and renders the correct sub-view for each phase (`idle`/`starting`/`active`/`ending`/`recovered`)
+- [ ] **K2** `src/components/session/pre-session-panel.tsx` — shown when `phase === 'idle'` or just before start; lists the context's pending tasks with checkboxes to pick which ones to tackle this session, duration adjuster (default from context), and a big "Start session" button
+- [ ] **K3** `src/components/session/active-session-view.tsx` — shown when `phase === 'active'`; full-bleed layout with:
+  - Large timer (MM:SS countdown) at top center; driven by a `useSessionTimer(startedAt, plannedDurationMinutes)` hook (K4)
+  - Selected tasks list with checkboxes (re-uses `TaskRow`); checking a task calls `taskStore.setStatus(id, 'done')`
+  - Music mini-controls at bottom (play/pause, volume slider) wired to `src/lib/os/audio.ts`
+  - Prominent "End session" button (calls `sessionStore.end('interrupted')`; if timer hit 0, treat as `'completed'` — K3 logic)
+- [ ] **K4** `src/lib/hooks/use-session-timer.ts` — `{ remainingSeconds, elapsedSeconds, isOvertime, progress01 }`; ticks every 1s via `setInterval`; cleans up on unmount
+- [ ] **K5** On timer reaching 0, emit a local event / dispatch state to Track L's break prompt (shared ephemeral state via `session-store` or a small `useBreakPrompt` hook)
+- [ ] **K6** Gate `Start session` button in K2 if the context has no wallpaper/music/shortcut set (warn but allow start — "minimal mode")
+
+### Track L — End-session log + break prompt + history
+- [ ] **L1** `src/components/session/end-session-dialog.tsx` — modal shown when user clicks End session OR timer reaches 0; fields: endReason radio (completed/interrupted/abandoned — auto-select based on how it was triggered), optional notes textarea; Save calls `sessionStore.end(reason, notes)`
+- [ ] **L2** `src/components/session/break-prompt.tsx` — shown when the active timer hits 0; two buttons: "Take a 5-minute break" (end current session as `completed`, start a Break context session for 5m) and "End session" (opens L1)
+- [ ] **L3** `src/routes/contexts/$id/history.tsx` — per-context session history route; lists recent sessions (via `sessionsRepo.recentForContext`) in a table with started-at, duration, end reason, notes preview
+- [ ] **L4** Add `/contexts/$id/history` route to `src/router.tsx`; link from the context card menu in `/contexts`
+- [ ] **L5** `src/lib/stores/history-store.ts` — Zustand store for recent sessions per context; lazy load on the history route; invalidate after `sessionStore.end`
+
+### Week 4 — Integration checkpoint
+- [ ] `pnpm typecheck` + `pnpm build` green
+- [ ] Two scoped commits: `feat(session): active session view + timer + start flow`, `feat(session): end dialog + break prompt + history`
 
 ## Week 5 — OS Bridge wire-up
 - [ ] Full snapshot-before-mutate flow in session-store start path
@@ -211,3 +229,6 @@ type MultiPicker<T> = { value: T[]; onChange: (v: T[]) => void; disabled?: boole
 2026-04-21 — H — contexts list + home grid complete: src/routes/contexts/index.tsx, src/routes/home.tsx, src/components/context-card.tsx
 2026-04-21 — CTO — Week 2 reconcile: replaced H's inline renderIcon fallback in context-card.tsx with the import from pickers/icon-picker.tsx (which F shipped). Typecheck + build green. Committed as 2 scopes: feat(pickers), feat(contexts).
 2026-04-21 — G — context editor form complete: src/routes/contexts/editor.tsx
+2026-04-21 — I — task list + row + add + store + keyboard: src/lib/stores/task-store.ts, src/components/task-{list,row,add-input}.tsx, src/routes/contexts/editor.tsx (Tasks section).
+2026-04-21 — J — dnd-kit + due-date/priority pickers + task filters: package.json, pnpm-lock.yaml, src/components/pickers/{due-date,priority}-picker.tsx, src/components/task-filters.tsx, src/components/task-list.tsx (DnD wrap), src/routes/contexts/editor.tsx (filter lift).
+2026-04-21 — CTO — Week 3 close-out: typecheck + build green; 2 scoped commits (feat(tasks) core + feat(tasks) pickers/filters/editor integration). 14 commits on main.
