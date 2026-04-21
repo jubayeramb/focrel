@@ -74,7 +74,7 @@ function SortableItem({ task, index, focusedIndex, onFocus, onDelete }: Sortable
 }
 
 export function TaskList({ contextId, statusFilter = "all" }: TaskListProps) {
-  const tasks = useTaskStore((s) => s.byContext[contextId] ?? []);
+  const tasks = useTaskStore((s) => s.tasksFor(contextId));
   const addInputRef = React.useRef<TaskAddInputHandle>(null);
   const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null);
 

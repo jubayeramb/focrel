@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { tasksRepo } from "@/lib/db";
 import type { NewTask, Task } from "@/lib/db";
 
+// Stable empty-array reference so `tasksFor` returns the same [] every call
+// when a context has no loaded tasks. Needed because React's useSyncExternalStore
+// re-invokes on every store change — a fresh `[]` would fail the equality check
+// and trigger an infinite render loop.
+const EMPTY_TASKS: Task[] = [];
+
 type CreateInput = Omit<NewTask, "id" | "position" | "createdAt" | "updatedAt"> & {
   contextId: string;
 };
@@ -85,7 +91,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   tasksFor(contextId) {
-    return get().byContext[contextId] ?? [];
+    return get().byContext[contextId] ?? EMPTY_TASKS;
   },
 }));
 
