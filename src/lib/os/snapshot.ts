@@ -4,6 +4,8 @@ export type Snapshot = {
   sessionId: string;
   contextId: string;
   startedAt: number;
+  plannedDurationMinutes: number;
+  taskIds: string[];
   originalWallpapers: string[];
   originalVolume: number | null;
   focusToggledByUs: boolean;
@@ -12,15 +14,22 @@ export type Snapshot = {
 };
 
 export type ReconcileReport = {
+  kind: "resume" | "crash";
+  sessionId: string;
+  contextId: string;
+  startedAt: number;
+  plannedDurationMinutes: number;
+  taskIds: string[];
   restoredWallpapers: boolean;
   focusReverted: boolean;
-  sessionId: string;
 };
 
 type SnapshotRaw = {
   session_id: string;
   context_id: string;
   started_at: number;
+  planned_duration_minutes: number;
+  task_ids: string[];
   original_wallpapers: string[];
   original_volume: number | null;
   focus_toggled_by_us: boolean;
@@ -29,9 +38,14 @@ type SnapshotRaw = {
 };
 
 type ReconcileReportRaw = {
+  kind: "resume" | "crash";
+  session_id: string;
+  context_id: string;
+  started_at: number;
+  planned_duration_minutes: number;
+  task_ids: string[];
   restored_wallpapers: boolean;
   focus_reverted: boolean;
-  session_id: string;
 };
 
 function toSnakeSnapshot(s: Snapshot): SnapshotRaw {
@@ -39,6 +53,8 @@ function toSnakeSnapshot(s: Snapshot): SnapshotRaw {
     session_id: s.sessionId,
     context_id: s.contextId,
     started_at: s.startedAt,
+    planned_duration_minutes: s.plannedDurationMinutes,
+    task_ids: s.taskIds,
     original_wallpapers: s.originalWallpapers,
     original_volume: s.originalVolume,
     focus_toggled_by_us: s.focusToggledByUs,
@@ -52,6 +68,8 @@ function fromSnakeSnapshot(raw: SnapshotRaw): Snapshot {
     sessionId: raw.session_id,
     contextId: raw.context_id,
     startedAt: raw.started_at,
+    plannedDurationMinutes: raw.planned_duration_minutes,
+    taskIds: raw.task_ids,
     originalWallpapers: raw.original_wallpapers,
     originalVolume: raw.original_volume,
     focusToggledByUs: raw.focus_toggled_by_us,
@@ -62,9 +80,14 @@ function fromSnakeSnapshot(raw: SnapshotRaw): Snapshot {
 
 function fromSnakeReconcileReport(raw: ReconcileReportRaw): ReconcileReport {
   return {
+    kind: raw.kind,
+    sessionId: raw.session_id,
+    contextId: raw.context_id,
+    startedAt: raw.started_at,
+    plannedDurationMinutes: raw.planned_duration_minutes,
+    taskIds: raw.task_ids,
     restoredWallpapers: raw.restored_wallpapers,
     focusReverted: raw.focus_reverted,
-    sessionId: raw.session_id,
   };
 }
 

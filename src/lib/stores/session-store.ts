@@ -49,6 +49,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         sessionId,
         contextId,
         startedAt: Date.now(),
+        plannedDurationMinutes,
+        taskIds,
         originalWallpapers,
         originalVolume: null,
         focusToggledByUs: Boolean(context.shortcutName),
@@ -172,7 +174,24 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   async checkForRecoveryOnLaunch() {
     const report = await snapshot.reconcileSnapshot();
-    if (report) {
+    if (!report) return;
+    if (report.kind === "resume") {
+      set({
+        state: {
+          phase: "active",
+          sessionId: report.sessionId,
+          contextId: report.contextId,
+          startedAt: report.startedAt,
+          plannedDurationMinutes: report.plannedDurationMinutes,
+          taskIds: report.taskIds,
+        },
+      });
+      window.dispatchEvent(
+        new CustomEvent("focrel:session-resumed", {
+          detail: { contextId: report.contextId },
+        }),
+      );
+    } else {
       set({ state: { phase: "recovered", report } });
     }
   },

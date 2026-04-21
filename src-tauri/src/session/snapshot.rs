@@ -10,6 +10,10 @@ pub struct Snapshot {
     pub session_id: String,
     pub context_id: String,
     pub started_at: i64,
+    #[serde(default)]
+    pub planned_duration_minutes: i64,
+    #[serde(default)]
+    pub task_ids: Vec<String>,
     pub original_wallpapers: Vec<String>,
     pub original_volume: Option<f32>,
     pub focus_toggled_by_us: bool,
@@ -19,9 +23,14 @@ pub struct Snapshot {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReconcileReport {
+    pub kind: String,
+    pub session_id: String,
+    pub context_id: String,
+    pub started_at: i64,
+    pub planned_duration_minutes: i64,
+    pub task_ids: Vec<String>,
     pub restored_wallpapers: bool,
     pub focus_reverted: bool,
-    pub session_id: String,
 }
 
 fn snapshot_path(app: &AppHandle) -> AppResult<PathBuf> {
@@ -83,6 +92,33 @@ pub async fn snapshot_reconcile(app: AppHandle) -> AppResult<Option<ReconcileRep
         None => return Ok(None),
     };
 
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
+
+    let elapsed_ms = now_ms - snapshot.started_at;
+    let total_ms = snapshot.planned_duration_minutes * 60_000;
+    // 2-hour grace window: sessions closed during overtime (or briefly dismissed)
+    // still resume rather than being treated as stale crashes.
+    let grace_ms: i64 = 2 * 60 * 60 * 1000;
+
+    if elapsed_ms < total_ms + grace_ms {
+        // Within grace window — resume the session; leave snapshot intact so
+        // it remains on disk until the session ends normally.
+        return Ok(Some(ReconcileReport {
+            kind: "resume".into(),
+            session_id: snapshot.session_id,
+            context_id: snapshot.context_id,
+            started_at: snapshot.started_at,
+            planned_duration_minutes: snapshot.planned_duration_minutes,
+            task_ids: snapshot.task_ids,
+            restored_wallpapers: false,
+            focus_reverted: false,
+        }));
+    }
+
+    // Stale snapshot — restore OS state and clear it.
     let mut restored_wallpapers = false;
     let mut focus_reverted = false;
 
@@ -107,8 +143,13 @@ pub async fn snapshot_reconcile(app: AppHandle) -> AppResult<Option<ReconcileRep
     snapshot_clear(app)?;
 
     Ok(Some(ReconcileReport {
+        kind: "crash".into(),
+        session_id: snapshot.session_id,
+        context_id: snapshot.context_id,
+        started_at: 0,
+        planned_duration_minutes: 0,
+        task_ids: vec![],
         restored_wallpapers,
         focus_reverted,
-        session_id: snapshot.session_id,
     }))
 }
