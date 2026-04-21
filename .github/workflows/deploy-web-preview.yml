@@ -1,0 +1,51 @@
+name: Preview web → Cloudflare Pages
+
+# Deploys each PR to a unique Cloudflare Pages preview URL so reviewers can
+# see the rendered site. URL format: https://<hash>.focrel-web.pages.dev.
+# Shares the same CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID secrets as the
+# production workflow.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/brand/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+
+concurrency:
+  group: preview-web-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+jobs:
+  preview:
+    name: Build + preview deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build web
+        run: pnpm --filter @focrel/web build
+
+      - name: Deploy preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/out --project-name=focrel-web --branch=pr-${{ github.event.pull_request.number }} --commit-dirty=true

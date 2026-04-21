@@ -30,7 +30,7 @@ export function HowItWorks() {
             How it works
           </p>
           <h2 className="mt-3 text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Four beats from "ugh, context switch" to locked in
+            Four beats from &ldquo;ugh, context switch&rdquo; to locked in
           </h2>
         </div>
 

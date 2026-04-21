@@ -63,7 +63,7 @@ export function Features() {
           Every switch, handled
         </h2>
         <p className="mt-4 text-balance text-muted-foreground">
-          Focrel doesn't add another app to check. It orchestrates the ones you already use,
+          Focrel doesn&apos;t add another app to check. It orchestrates the ones you already use,
           so one decision moves everything into place.
         </p>
       </div>

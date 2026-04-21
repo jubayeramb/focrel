@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (typecheck + lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @focrel/web typecheck
+      - run: pnpm --filter @focrel/web lint
+      - run: pnpm --filter @focrel/web build
+
+  desktop:
+    name: Desktop (typecheck)
+    runs-on: ubuntu-latest
+    # Skip the full Tauri/Rust build in CI until we start cutting releases —
+    # it needs per-OS runners (macOS for .dmg signing, etc.). Typecheck catches
+    # the bulk of breakage the TS/React code could introduce.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @focrel/desktop typecheck
