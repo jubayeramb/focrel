@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder},
+    menu::{MenuBuilder, MenuItem, MenuItemBuilder, Submenu, SubmenuBuilder},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager,
 };
@@ -14,57 +14,103 @@ pub fn tray_state() -> TrayState {
     Mutex::new(None)
 }
 
+/// Per-item handles kept alive so the JS-driven updaters
+/// (`tray_set_session_label`, `tray_set_end_enabled`) can mutate the specific
+/// menu items in place instead of rebuilding the whole menu. Rebuilding on the
+/// 1 s label tick closed any open submenu, making "End session" unclickable.
+pub struct TrayHandles {
+    pub session_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    pub end_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    pub start_submenu: Mutex<Option<Submenu<tauri::Wry>>>,
+}
+
+pub fn tray_handles() -> TrayHandles {
+    TrayHandles {
+        session_item: Mutex::new(None),
+        end_item: Mutex::new(None),
+        start_submenu: Mutex::new(None),
+    }
+}
+
 #[derive(Clone, serde::Deserialize)]
 pub struct TrayContextItem {
     pub id: String,
     pub name: String,
 }
 
-/// Builds the full tray menu from the current logical state.  Called both at
-/// startup and on every dynamic update — the menu is small so a full rebuild
-/// is cleaner than per-item mutation through Tauri 2's main-thread wrappers.
-pub fn build_menu(
+/// Replaces the items inside the "Start session" submenu in place — the
+/// submenu itself stays mounted in the root menu so macOS doesn't close it.
+pub fn set_submenu_contexts(
     app: &AppHandle,
-    session_label: &str,
+    submenu: &Submenu<tauri::Wry>,
     contexts: &[TrayContextItem],
-    end_enabled: bool,
-) -> AppResult<tauri::menu::Menu<tauri::Wry>> {
-    let header = MenuItemBuilder::with_id("focrel-header", "Focrel")
-        .enabled(false)
-        .build(app)
+) -> AppResult<()> {
+    // Tauri 2's Submenu exposes items() + remove(&item); clear everything first
+    // then append fresh items for the current context set.
+    let existing = submenu
+        .items()
         .map_err(|e| AppError::TauriApi(e.to_string()))?;
+    for item in existing {
+        submenu
+            .remove(&item)
+            .map_err(|e| AppError::TauriApi(e.to_string()))?;
+    }
 
-    let session_item = MenuItemBuilder::with_id("current-session", session_label)
-        .enabled(false)
-        .build(app)
-        .map_err(|e| AppError::TauriApi(e.to_string()))?;
+    if contexts.is_empty() {
+        let placeholder = MenuItemBuilder::with_id("start-session-empty", "No contexts yet")
+            .enabled(false)
+            .build(app)
+            .map_err(|e| AppError::TauriApi(e.to_string()))?;
+        submenu
+            .append(&placeholder)
+            .map_err(|e| AppError::TauriApi(e.to_string()))?;
+        return Ok(());
+    }
 
-    let mut start_submenu_builder = SubmenuBuilder::new(app, "Start session");
     for ctx in contexts {
         let item_id = format!("start-session-{}", ctx.id);
         let item = MenuItemBuilder::with_id(item_id, &ctx.name)
             .build(app)
             .map_err(|e| AppError::TauriApi(e.to_string()))?;
-        start_submenu_builder = start_submenu_builder.item(&item);
+        submenu
+            .append(&item)
+            .map_err(|e| AppError::TauriApi(e.to_string()))?;
     }
-    let start_submenu = start_submenu_builder
-        .build()
-        .map_err(|e| AppError::TauriApi(e.to_string()))?;
+    Ok(())
+}
+
+pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
+    // Embed the tray icon bytes at compile time. Reading from disk at runtime
+    // and falling back to an empty-bytes zero-width placeholder crashed muda
+    // later in the event loop (`panicked... ZeroWidth`). Embedding guarantees
+    // valid bytes every launch.
+    const TRAY_ICON_BYTES: &[u8] = include_bytes!("../icons/tray-icon.png");
+    let icon = tauri::image::Image::from_bytes(TRAY_ICON_BYTES)
+        .map_err(|e| tauri::Error::Anyhow(anyhow::anyhow!("tray icon decode failed: {e}")))?;
+
+    // Build items once. Keep handles so we can mutate text / enabled later.
+    let header = MenuItemBuilder::with_id("focrel-header", "Focrel")
+        .enabled(false)
+        .build(app)?;
+    let session_item = MenuItemBuilder::with_id("current-session", "No active session")
+        .enabled(false)
+        .build(app)?;
+
+    let start_submenu_placeholder =
+        MenuItemBuilder::with_id("start-session-empty", "No contexts yet")
+            .enabled(false)
+            .build(app)?;
+    let start_submenu = SubmenuBuilder::new(app, "Start session")
+        .item(&start_submenu_placeholder)
+        .build()?;
 
     let end_item = MenuItemBuilder::with_id("end-session", "End session")
-        .enabled(end_enabled)
-        .build(app)
-        .map_err(|e| AppError::TauriApi(e.to_string()))?;
+        .enabled(false)
+        .build(app)?;
+    let open_item = MenuItemBuilder::with_id("open-focrel", "Open Focrel").build(app)?;
+    let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
-    let open_item = MenuItemBuilder::with_id("open-focrel", "Open Focrel")
-        .build(app)
-        .map_err(|e| AppError::TauriApi(e.to_string()))?;
-
-    let quit_item = MenuItemBuilder::with_id("quit", "Quit")
-        .build(app)
-        .map_err(|e| AppError::TauriApi(e.to_string()))?;
-
-    MenuBuilder::new(app)
+    let menu = MenuBuilder::new(app)
         .item(&header)
         .item(&session_item)
         .item(&start_submenu)
@@ -72,36 +118,10 @@ pub fn build_menu(
         .separator()
         .item(&open_item)
         .item(&quit_item)
-        .build()
-        .map_err(|e| AppError::TauriApi(e.to_string()))
-}
-
-pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
-    // During development the icon lives in the manifest directory; in a bundle
-    // it is placed in the resource directory by the bundler.
-    let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("icons")
-        .join("tray-icon.png");
-
-    let icon = if dev_path.exists() {
-        tauri::image::Image::from_path(&dev_path).unwrap_or_else(|_| tauri::image::Image::new(&[], 0, 0))
-    } else {
-        app.path()
-            .resolve("icons/tray-icon.png", tauri::path::BaseDirectory::Resource)
-            .ok()
-            .and_then(|p| tauri::image::Image::from_path(p).ok())
-            .unwrap_or_else(|| tauri::image::Image::new(&[], 0, 0))
-    };
-
-    let menu = build_menu(app, "No active session", &[], false)
-        .map_err(|e| tauri::Error::Anyhow(e.into()))?;
+        .build()?;
 
     let tray = TrayIconBuilder::with_id("focrel-tray")
         .icon(icon)
-        // Our icon is a full-color gradient squircle, not a monochrome
-        // glyph. `icon_as_template(true)` would flatten it to a white/black
-        // mask (macOS's menubar template style) — that looked like a blank
-        // white square. Render as color instead.
         .icon_as_template(false)
         .menu(&menu)
         .on_menu_event(|app, event| {
@@ -113,15 +133,13 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
                         let _ = window.set_focus();
                     }
                 }
-                "quit" => {
-                    app.exit(0);
-                }
+                "quit" => app.exit(0),
                 "end-session" => {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.emit("focrel://tray-end-session", ());
                     }
                 }
-                other if other.starts_with("start-session-") => {
+                other if other.starts_with("start-session-") && other != "start-session-empty" => {
                     let context_id = &other["start-session-".len()..];
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.emit(
@@ -135,8 +153,15 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
 
-    let state: tauri::State<TrayState> = app.state();
-    *state.lock().unwrap() = Some(tray);
+    // Stash everything. Clones are Arc-backed so the originals in the menu
+    // and our stored copies refer to the same underlying items.
+    let tray_slot: tauri::State<TrayState> = app.state();
+    *tray_slot.lock().unwrap() = Some(tray);
+
+    let handles: tauri::State<TrayHandles> = app.state();
+    *handles.session_item.lock().unwrap() = Some(session_item);
+    *handles.end_item.lock().unwrap() = Some(end_item);
+    *handles.start_submenu.lock().unwrap() = Some(start_submenu);
 
     Ok(())
 }

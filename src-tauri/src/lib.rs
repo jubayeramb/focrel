@@ -6,7 +6,7 @@ mod tray;
 use commands::apps::{list_installed_apps, list_running_apps, quit_apps};
 use commands::audio::{audio_pause, audio_play, audio_resume, audio_seek, audio_set_volume, audio_stop};
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
-use commands::tray_cmds::{tray_menu_state, tray_set_contexts, tray_set_end_enabled, tray_set_session_label};
+use commands::tray_cmds::{tray_set_contexts, tray_set_end_enabled, tray_set_session_label};
 use commands::wallpaper::{get_wallpaper_all, set_wallpaper};
 use session::snapshot::{snapshot_clear, snapshot_load, snapshot_reconcile, snapshot_save};
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
@@ -23,7 +23,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(tray::tray_state())
-        .manage(tray_menu_state())
+        .manage(tray::tray_handles())
         .setup(|app| {
             let handle: AppHandle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
