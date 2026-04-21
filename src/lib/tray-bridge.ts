@@ -13,24 +13,6 @@ let musicIsPlaying = false;
 let musicCurrentPath: string | null = null;
 let musicLoopForever = true;
 
-function formatElapsed(startedAt: number): string {
-  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
-  const m = Math.floor(elapsed / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = (elapsed % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
-
-let tickInterval: ReturnType<typeof setInterval> | null = null;
-
-function clearTick() {
-  if (tickInterval !== null) {
-    clearInterval(tickInterval);
-    tickInterval = null;
-  }
-}
-
 function logInvoke(cmd: string, args: Record<string, unknown>) {
   invoke(cmd, args).catch((err) => {
     console.error(`[focrel/tray] invoke ${cmd} failed:`, err, "args:", args);
@@ -60,30 +42,21 @@ function syncSession() {
   if (state.phase === "active") {
     const ctx = useContextStore.getState().getById(state.contextId);
     const ctxName = ctx?.name ?? "Focus";
-    const capturedStartedAt = state.startedAt;
 
-    // Music availability follows the session's configured track; audio.play
-    // is already fired from session-store.start. We mirror that belief here.
     musicCurrentPath = ctx?.musicPath ?? null;
     musicIsPlaying = musicCurrentPath !== null;
     musicLoopForever = (ctx?.musicLoop ?? 1) === 1;
 
     logInvoke("tray_set_end_enabled", { enabled: true });
-    logInvoke("tray_set_session_label", {
-      label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
-    });
+    // Rust-side ticker owns the 1s label refresh so it doesn't drift when
+    // the webview is hidden (browsers throttle JS setInterval to ~2s when
+    // the window is minimized / backgrounded).
+    logInvoke("tray_start_ticker", { startedAt: state.startedAt, ctxName });
     syncMusicMenu();
-
-    clearTick();
-    tickInterval = setInterval(() => {
-      logInvoke("tray_set_session_label", {
-        label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
-      });
-    }, 1000);
   } else {
-    clearTick();
     musicCurrentPath = null;
     musicIsPlaying = false;
+    logInvoke("tray_stop_ticker", {});
     logInvoke("tray_set_end_enabled", { enabled: false });
     logInvoke("tray_set_session_label", { label: "No active session" });
     syncMusicMenu();

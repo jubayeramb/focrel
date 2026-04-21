@@ -8,6 +8,7 @@ use commands::audio::{audio_pause, audio_play, audio_resume, audio_seek, audio_s
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
 use commands::tray_cmds::{
     tray_set_contexts, tray_set_end_enabled, tray_set_music_state, tray_set_session_label,
+    tray_start_ticker, tray_stop_ticker,
 };
 use commands::wallpaper::{get_wallpaper_all, set_wallpaper};
 use session::snapshot::{snapshot_clear, snapshot_load, snapshot_reconcile, snapshot_save};
@@ -74,6 +75,8 @@ pub fn run() {
             tray_set_contexts,
             tray_set_end_enabled,
             tray_set_music_state,
+            tray_start_ticker,
+            tray_stop_ticker,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Tauri application")

@@ -14,6 +14,56 @@ pub fn tray_set_session_label(app: AppHandle, label: String) -> AppResult<()> {
         .map_err(|e| AppError::TauriApi(e.to_string()))
 }
 
+/// Spawn a tokio ticker that updates the tray's session label every 1s with
+/// elapsed MM:SS. Idempotent — existing ticker is aborted first.
+#[tauri::command]
+pub fn tray_start_ticker(app: AppHandle, started_at: i64, ctx_name: String) -> AppResult<()> {
+    let handles: tauri::State<TrayHandles> = app.state();
+
+    // Abort prior ticker before starting a new one.
+    let prev = handles.ticker.lock().unwrap().take();
+    if let Some(h) = prev {
+        h.abort();
+    }
+
+    let app_for_task = app.clone();
+    let handle = tauri::async_runtime::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+        // Fire immediately on first tick rather than waiting a second.
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as i64)
+                .unwrap_or(0);
+            let elapsed_sec = ((now - started_at).max(0) / 1000) as i64;
+            let m = elapsed_sec / 60;
+            let s = elapsed_sec % 60;
+            let label = format!("{ctx_name} · {:02}:{:02}", m, s);
+
+            let handles: tauri::State<TrayHandles> = app_for_task.state();
+            let guard = handles.session_item.lock().unwrap();
+            if let Some(item) = guard.as_ref() {
+                let _ = item.set_text(&label);
+            }
+        }
+    });
+
+    *handles.ticker.lock().unwrap() = Some(handle);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn tray_stop_ticker(app: AppHandle) -> AppResult<()> {
+    let handles: tauri::State<TrayHandles> = app.state();
+    let prev = handles.ticker.lock().unwrap().take();
+    if let Some(h) = prev {
+        h.abort();
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn tray_set_contexts(app: AppHandle, contexts: Vec<TrayContext>) -> AppResult<()> {
     let items: Vec<TrayContextItem> = contexts
