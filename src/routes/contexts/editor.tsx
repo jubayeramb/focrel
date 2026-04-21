@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TaskFilters } from "@/components/task-filters";
+import { TaskList } from "@/components/task-list";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +63,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
   const [durationError, setDurationError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
+  const [taskFilter, setTaskFilter] = useState<"all" | "open" | "done">("all");
 
   useEffect(() => {
     if (!isEdit) return;
@@ -396,6 +399,19 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           </div>
         </CardContent>
       </Card>
+
+      {/* Section 4: Tasks — only available in edit mode (new contexts have no id yet) */}
+      {contextId && (
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm">Tasks</CardTitle>
+            <TaskFilters value={taskFilter} onChange={setTaskFilter} />
+          </CardHeader>
+          <CardContent>
+            <TaskList contextId={contextId} statusFilter={taskFilter} />
+          </CardContent>
+        </Card>
+      )}
     </form>
   );
 }
