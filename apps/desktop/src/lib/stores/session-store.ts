@@ -50,6 +50,12 @@ function startPlaylistWatcher(paths: string[], shuffle: boolean, loop: boolean):
 
   playlistWatcher = setInterval(async () => {
     try {
+      // If the user paused or stopped from the UI, the sink may be empty
+      // but we must NOT re-queue — that would undo an intentional stop.
+      // The watcher only re-queues when music is supposed to be playing
+      // (the natural end-of-playlist case where the last track finished).
+      if (!useMusicStore.getState().isPlaying) return;
+
       const empty = await audio.isEmpty();
       if (!empty) return;
       const next = shuffle ? shuffleInPlace([...paths]) : [...paths];
@@ -57,6 +63,10 @@ function startPlaylistWatcher(paths: string[], shuffle: boolean, loop: boolean):
       for (const p of next.slice(1)) {
         await audio.queue(p);
       }
+      // Keep the music store's notion of "what's playing" in sync with the
+      // re-queued round so any future Pause/Resume operates on the right
+      // first-track path.
+      useMusicStore.getState().setPlaying(next[0], true);
     } catch (err) {
       console.warn("[focrel] playlist watcher error:", err);
     }
