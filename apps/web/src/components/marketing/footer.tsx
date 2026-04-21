@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { productName } from "@focrel/brand";
+import { contactEmail, productName } from "@focrel/brand";
 import { Wordmark } from "./wordmark";
 
 export function Footer() {
@@ -41,7 +41,7 @@ export function Footer() {
             heading="Connect"
             links={[
               { href: "https://github.com", label: "GitHub", external: true },
-              { href: "mailto:hello@focrel.app", label: "Email" },
+              { href: `mailto:${contactEmail}`, label: "Email" },
             ]}
           />
         </div>

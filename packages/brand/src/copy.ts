@@ -1,6 +1,7 @@
 export const productName = "Focrel";
-export const productDomain = "focrel.app";
-export const productUrl = "https://focrel.app";
+export const productDomain = "focrel.com";
+export const productUrl = "https://focrel.com";
+export const contactEmail = "hello@focrel.com";
 
 export const tagline = "Switch contexts, switch realms.";
 

@@ -6,7 +6,7 @@ name: Deploy web → Cloudflare Pages
 #
 # One-time Cloudflare setup (run once from a local shell with wrangler logged in):
 #   pnpm dlx wrangler pages project create focrel-web --production-branch=main
-# After the first deploy, configure the custom domain (focrel.app) in
+# After the first deploy, configure the custom domain (focrel.com) in
 # Cloudflare dashboard → Pages → focrel-web → Custom domains.
 
 on:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://focrel.app
+      url: https://focrel.com
     steps:
       - uses: actions/checkout@v4
 

@@ -9,7 +9,7 @@ Focus is a feeling. Focrel makes it a place. Each context — Deep Work, Break, 
 focrel/                   ← pnpm workspace root + turborepo orchestration
 ├── apps/
 │   ├── desktop/          ← Tauri 2 app (macOS today; Windows/Linux/iOS/Android roadmapped)
-│   └── web/              ← Next.js 16 marketing site + blog (→ focrel.app)
+│   └── web/              ← Next.js 16 marketing site + blog (→ focrel.com)
 ├── packages/
 │   └── brand/            ← shared tokens, copy, logo SVGs — single source of truth
 ├── turbo.json
@@ -67,7 +67,7 @@ The `apps/web` marketing site deploys to Cloudflare Pages via GitHub Actions:
 2. Add two secrets to the GitHub repo (Settings → Secrets and variables → Actions):
    - `CLOUDFLARE_API_TOKEN` — API token with scope `Account → Cloudflare Pages → Edit`
    - `CLOUDFLARE_ACCOUNT_ID` — 32-char hex from the Cloudflare dashboard
-3. After the first successful deploy, bind the custom domain (`focrel.app`) in Cloudflare → Pages → `focrel-web` → Custom domains.
+3. After the first successful deploy, bind the custom domain (`focrel.com`) in Cloudflare → Pages → `focrel-web` → Custom domains.
 
 After setup, every merge to `main` touching web or brand auto-ships to production.
 
@@ -75,7 +75,7 @@ After setup, every merge to `main` touching web or brand auto-ships to productio
 - **Now:** macOS beta (free), marketing site, blog, organic-SEO push
 - **Next:** Windows + Linux builds
 - **Then:** user accounts + device sync + iOS + Android
-- **Later:** paid tier (MRR tracking), dashboard app at `app.focrel.app`
+- **Later:** paid tier (MRR tracking), dashboard app at `app.focrel.com`
 
 ## License
 TBD.

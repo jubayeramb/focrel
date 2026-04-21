@@ -1,5 +1,10 @@
 import { ImageResponse } from "next/og";
-import { productName, shortDescription, tagline } from "@focrel/brand";
+import {
+  productDomain,
+  productName,
+  shortDescription,
+  tagline,
+} from "@focrel/brand";
 
 export const dynamic = "force-static";
 
@@ -88,7 +93,7 @@ export default async function OpenGraphImage() {
           >
             macOS beta
           </span>
-          <span>focrel.app</span>
+          <span>{productDomain}</span>
         </div>
       </div>
     ),
