@@ -13,7 +13,9 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "icon:render": "node scripts/render-icon.mjs /tmp/focrel-icon/source.svg src-tauri/icons/icon-source.png 1024 && pnpm tauri icon src-tauri/icons/icon-source.png && node scripts/render-icon.mjs /tmp/focrel-icon/source.svg src-tauri/icons/tray-icon.png 44",
+    "clean": "rm -rf src-tauri/target dist && echo 'Tip: run `killall Dock && killall Finder` to flush macOS icon cache too'"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

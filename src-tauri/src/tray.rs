@@ -98,7 +98,11 @@ pub fn init_tray(app: &AppHandle) -> tauri::Result<()> {
 
     let tray = TrayIconBuilder::with_id("focrel-tray")
         .icon(icon)
-        .icon_as_template(true)
+        // Our icon is a full-color gradient squircle, not a monochrome
+        // glyph. `icon_as_template(true)` would flatten it to a white/black
+        // mask (macOS's menubar template style) — that looked like a blank
+        // white square. Render as color instead.
+        .icon_as_template(false)
         .menu(&menu)
         .on_menu_event(|app, event| {
             let id = event.id.as_ref();
