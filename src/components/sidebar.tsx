@@ -1,0 +1,107 @@
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Clock, Home, LayoutGrid, Plus, Settings } from "lucide-react";
+import { useContextStore } from "@/lib/stores/context-store";
+import { useSessionStore } from "@/lib/stores/session-store";
+import { useSessionTimer } from "@/lib/hooks/use-session-timer";
+import { cn } from "@/lib/utils";
+
+function formatMmSs(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function ActiveSessionPill() {
+  const navigate = useNavigate();
+  const state = useSessionStore((s) => s.state);
+  const getById = useContextStore((s) => s.getById);
+
+  if (state.phase !== "active") return null;
+
+  const context = getById(state.contextId);
+  const { remainingSeconds } = useSessionTimer(state.startedAt, state.plannedDurationMinutes);
+
+  return (
+    <button
+      onClick={() => void navigate({ to: "/session", search: { contextId: state.contextId } })}
+      className={cn(
+        "mx-3 mb-2 flex items-center gap-2 rounded-lg border border-border",
+        "bg-accent/30 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/50",
+      )}
+    >
+      <span
+        className="size-2.5 shrink-0 rounded-full"
+        style={{ backgroundColor: context?.color ?? "#7c3aed" }}
+      />
+      <span className="min-w-0 flex-1 truncate font-medium">{context?.name ?? "Session"}</span>
+      <span className="shrink-0 tabular-nums text-muted-foreground text-xs">
+        {formatMmSs(remainingSeconds)}
+      </span>
+    </button>
+  );
+}
+
+type NavItemProps = {
+  icon: React.ReactNode;
+  label: string;
+  path: string;
+};
+
+function NavItem({ icon, label, path }: NavItemProps) {
+  const navigate = useNavigate();
+  const { location } = useRouterState();
+  const isActive = location.pathname === path;
+
+  return (
+    <button
+      onClick={() => void navigate({ to: path })}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        isActive
+          ? "bg-accent text-accent-foreground font-medium"
+          : "text-foreground hover:bg-accent/50",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+export function Sidebar() {
+  const navigate = useNavigate();
+
+  return (
+    <aside className="fixed top-0 left-0 bottom-0 w-60 border-r border-border bg-background/95 backdrop-blur-sm flex flex-col z-40">
+      {/* Traffic-light drag region — 40px so macOS controls don't overlap nav */}
+      <div data-tauri-drag-region className="h-10 shrink-0" />
+
+      {/* Wordmark */}
+      <div className="px-4 pt-3 pb-2">
+        <span className="text-lg font-semibold select-none">Focrel</span>
+      </div>
+
+      {/* Active session pill */}
+      <ActiveSessionPill />
+
+      {/* Nav items */}
+      <nav className="flex-1 overflow-y-auto px-3 space-y-0.5">
+        <NavItem icon={<Home className="size-4 shrink-0" />} label="Home" path="/" />
+        <NavItem icon={<LayoutGrid className="size-4 shrink-0" />} label="Contexts" path="/contexts" />
+        <NavItem icon={<Clock className="size-4 shrink-0" />} label="History" path="/history" />
+        <NavItem icon={<Settings className="size-4 shrink-0" />} label="Settings" path="/settings" />
+      </nav>
+
+      {/* New context quick-action */}
+      <div className="px-3 pb-4 pt-2 border-t border-border">
+        <button
+          onClick={() => void navigate({ to: "/contexts/new" })}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        >
+          <Plus className="size-4 shrink-0" />
+          New context
+        </button>
+      </div>
+    </aside>
+  );
+}

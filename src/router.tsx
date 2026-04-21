@@ -10,6 +10,7 @@ import {
 import { ContextEditorPage } from "@/routes/contexts/editor";
 import { ContextHistoryPage } from "@/routes/contexts/history";
 import { ContextsPage } from "@/routes/contexts/index";
+import { GlobalHistoryPage } from "@/routes/history";
 import { HomePage } from "@/routes/home";
 import { OnboardingPage } from "@/routes/onboarding";
 import { RootLayout } from "@/routes/root";
@@ -51,9 +52,7 @@ const homeRoute = createRoute({
       void navigate({ to: "/session", search: { contextId } });
     return (
       <HomePage
-        onNavigateToNewContext={() => {
-          void navigate({ to: "/contexts/new" });
-        }}
+        onNavigateToNewContext={() => void navigate({ to: "/contexts/new" })}
         onStartSession={goToSession}
         onSessionStarted={goToSession}
       />
@@ -73,9 +72,7 @@ const sessionRoute = createRoute({
     return (
       <SessionPage
         contextId={contextId}
-        onEndSession={() => {
-          void navigate({ to: "/" });
-        }}
+        onEndSession={() => void navigate({ to: "/" })}
       />
     );
   },
@@ -88,15 +85,11 @@ const contextsRoute = createRoute({
     const navigate = contextsRoute.useNavigate();
     return (
       <ContextsPage
-        onNavigateToNew={() => {
-          void navigate({ to: "/contexts/new" });
-        }}
-        onNavigateToEdit={(id) => {
-          void navigate({ to: "/contexts/$id/edit", params: { id } });
-        }}
-        onNavigateToHistory={(id) => {
-          void navigate({ to: "/contexts/$id/history", params: { id } });
-        }}
+        onNavigateToNew={() => void navigate({ to: "/contexts/new" })}
+        onNavigateToEdit={(id) => void navigate({ to: "/contexts/$id/edit", params: { id } })}
+        onNavigateToHistory={(id) =>
+          void navigate({ to: "/contexts/$id/history", params: { id } })
+        }
       />
     );
   },
@@ -109,12 +102,8 @@ const contextsNewRoute = createRoute({
     const navigate = contextsNewRoute.useNavigate();
     return (
       <ContextEditorPage
-        onSave={() => {
-          void navigate({ to: "/contexts" });
-        }}
-        onCancel={() => {
-          void navigate({ to: "/contexts" });
-        }}
+        onSave={() => void navigate({ to: "/contexts" })}
+        onCancel={() => void navigate({ to: "/contexts" })}
       />
     );
   },
@@ -129,12 +118,8 @@ const contextsEditRoute = createRoute({
     return (
       <ContextEditorPage
         contextId={id}
-        onSave={() => {
-          void navigate({ to: "/contexts" });
-        }}
-        onCancel={() => {
-          void navigate({ to: "/contexts" });
-        }}
+        onSave={() => void navigate({ to: "/contexts" })}
+        onCancel={() => void navigate({ to: "/contexts" })}
       />
     );
   },
@@ -146,7 +131,9 @@ const contextsHistoryRoute = createRoute({
   component: function ContextHistory() {
     const { id } = contextsHistoryRoute.useParams();
     const navigate = contextsHistoryRoute.useNavigate();
-    return <ContextHistoryPage contextId={id} onBack={() => void navigate({ to: "/contexts" })} />;
+    return (
+      <ContextHistoryPage contextId={id} onBack={() => void navigate({ to: "/contexts" })} />
+    );
   },
 });
 
@@ -154,6 +141,12 @@ const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
   component: SettingsPage,
+});
+
+const globalHistoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/history",
+  component: GlobalHistoryPage,
 });
 
 const onboardingRoute = createRoute({
@@ -181,6 +174,7 @@ const routeTree = rootRoute.addChildren([
   contextsEditRoute,
   contextsHistoryRoute,
   settingsRoute,
+  globalHistoryRoute,
   onboardingRoute,
 ]);
 

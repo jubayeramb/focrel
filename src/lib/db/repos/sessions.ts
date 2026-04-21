@@ -118,6 +118,15 @@ export const sessionsRepo = {
     return rows.map(toSession);
   },
 
+  async allRecent(limit = 100): Promise<Session[]> {
+    const db = await getDb();
+    const rows = await db.select<SessionRow[]>(
+      "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?",
+      [limit],
+    );
+    return rows.map(toSession);
+  },
+
   async tasksForSession(sessionId: string): Promise<Task[]> {
     const db = await getDb();
     const rows = await db.select<TaskRow[]>(
