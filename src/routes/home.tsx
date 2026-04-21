@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ type HomePageProps = {
 export function HomePage({ onNavigateToNewContext, onStartSession, onSessionStarted }: HomePageProps) {
   const { contexts, loading, load } = useContextStore();
   const sessionStore = useSessionStore();
+  const navigate = useNavigate();
 
   const [analytics, setAnalytics] = useState<AnalyticsState>({
     today: EMPTY_STATS,
@@ -164,12 +166,23 @@ export function HomePage({ onNavigateToNewContext, onStartSession, onSessionStar
       )}
 
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Quick start</h2>
+        <div className="flex items-end justify-between">
+          <h2 className="text-base font-semibold">Quick start</h2>
+          {active.length > 4 && (
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/sessions" })}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              View all →
+            </button>
+          )}
+        </div>
         {active.length === 0 ? (
           <EmptyContextState onNew={onNavigateToNewContext} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {active.map((c) => (
+            {active.slice(0, 4).map((c) => (
               <ContextCard
                 key={c.id}
                 context={c}

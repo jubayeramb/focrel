@@ -15,8 +15,50 @@ function formatElapsed(startedAt: number): string {
   return `${m}:${s}`;
 }
 
+let tickInterval: ReturnType<typeof setInterval> | null = null;
+
+function clearTick() {
+  if (tickInterval !== null) {
+    clearInterval(tickInterval);
+    tickInterval = null;
+  }
+}
+
+function syncContexts() {
+  const active: TrayContext[] = useContextStore
+    .getState()
+    .contexts.filter((c) => !c.archivedAt)
+    .map((c) => ({ id: c.id, name: c.name }));
+  void invoke("tray_set_contexts", { contexts: active });
+}
+
+function syncSession() {
+  const { state } = useSessionStore.getState();
+
+  if (state.phase === "active") {
+    const ctx = useContextStore.getState().getById(state.contextId);
+    const ctxName = ctx?.name ?? "Focus";
+    const capturedStartedAt = state.startedAt;
+
+    void invoke("tray_set_end_enabled", { enabled: true });
+    void invoke("tray_set_session_label", {
+      label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
+    });
+
+    clearTick();
+    tickInterval = setInterval(() => {
+      void invoke("tray_set_session_label", {
+        label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
+      });
+    }, 1000);
+  } else {
+    clearTick();
+    void invoke("tray_set_end_enabled", { enabled: false });
+    void invoke("tray_set_session_label", { label: "No active session" });
+  }
+}
+
 export function initTrayBridge(): void {
-  // Listen for tray → start-session requests.
   void listen<{ contextId: string }>("focrel://tray-start-session", (event) => {
     const { contextId } = event.payload;
     const ctx = useContextStore.getState().getById(contextId);
@@ -27,50 +69,17 @@ export function initTrayBridge(): void {
     });
   });
 
-  // Listen for tray → end-session requests.
   void listen("focrel://tray-end-session", () => {
     void useSessionStore.getState().end("interrupted");
   });
 
-  // Keep tray context list in sync with the context store.
-  useContextStore.subscribe((state) => {
-    const active: TrayContext[] = state.contexts
-      .filter((c) => !c.archivedAt)
-      .map((c) => ({ id: c.id, name: c.name }));
-    void invoke("tray_set_contexts", { contexts: active });
-  });
+  useContextStore.subscribe(syncContexts);
+  useSessionStore.subscribe(syncSession);
 
-  // Keep tray session label and end-item state in sync with the session store.
-  let tickInterval: ReturnType<typeof setInterval> | null = null;
-
-  useSessionStore.subscribe((store) => {
-    const { state } = store;
-
-    if (state.phase === "active") {
-      const ctx = useContextStore.getState().getById(state.contextId);
-      const ctxName = ctx?.name ?? "Focus";
-
-      void invoke("tray_set_end_enabled", { enabled: true });
-      void invoke("tray_set_session_label", {
-        label: `${ctxName} · ${formatElapsed(state.startedAt)}`,
-      });
-
-      if (tickInterval !== null) {
-        clearInterval(tickInterval);
-      }
-      const capturedStartedAt = state.startedAt;
-      tickInterval = setInterval(() => {
-        void invoke("tray_set_session_label", {
-          label: `${ctxName} · ${formatElapsed(capturedStartedAt)}`,
-        });
-      }, 1000);
-    } else {
-      if (tickInterval !== null) {
-        clearInterval(tickInterval);
-        tickInterval = null;
-      }
-      void invoke("tray_set_end_enabled", { enabled: false });
-      void invoke("tray_set_session_label", { label: "No active session" });
-    }
-  });
+  // Zustand's subscribe only fires on subsequent changes. Because init runs
+  // AFTER contexts load and AFTER the resume-on-launch path can flip session
+  // to 'active', the subscriptions would never see the initial state.
+  // Invoke once explicitly so the tray menu reflects reality at startup.
+  syncContexts();
+  syncSession();
 }

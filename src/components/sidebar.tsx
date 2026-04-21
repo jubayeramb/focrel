@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Clock, Home, LayoutGrid, Plus, Settings } from "lucide-react";
+import { Clock, Home, LayoutGrid, Play, Plus, Settings } from "lucide-react";
 import { useContextStore } from "@/lib/stores/context-store";
 import { useSessionStore } from "@/lib/stores/session-store";
 import { useSessionTimer } from "@/lib/hooks/use-session-timer";
@@ -16,10 +16,16 @@ function ActiveSessionPill() {
   const state = useSessionStore((s) => s.state);
   const getById = useContextStore((s) => s.getById);
 
-  if (state.phase !== "active") return null;
+  // Hooks must always run in the same order. Pull the timer fields with safe
+  // defaults so we can early-return below without changing hook-call count.
+  const isActive = state.phase === "active";
+  const startedAt = isActive ? state.startedAt : 0;
+  const plannedDurationMinutes = isActive ? state.plannedDurationMinutes : 0;
+  const { remainingSeconds } = useSessionTimer(startedAt, plannedDurationMinutes);
+
+  if (!isActive) return null;
 
   const context = getById(state.contextId);
-  const { remainingSeconds } = useSessionTimer(state.startedAt, state.plannedDurationMinutes);
 
   return (
     <button
@@ -90,6 +96,7 @@ export function Sidebar() {
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto px-3 space-y-0.5">
         <NavItem icon={<Home className="size-4 shrink-0" />} label="Home" path="/" />
+        <NavItem icon={<Play className="size-4 shrink-0" />} label="Sessions" path="/sessions" />
         <NavItem icon={<LayoutGrid className="size-4 shrink-0" />} label="Contexts" path="/contexts" />
         <NavItem icon={<Clock className="size-4 shrink-0" />} label="History" path="/history" />
         <NavItem icon={<Settings className="size-4 shrink-0" />} label="Settings" path="/settings" />

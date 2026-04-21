@@ -15,6 +15,7 @@ import { HomePage } from "@/routes/home";
 import { OnboardingPage } from "@/routes/onboarding";
 import { RootLayout } from "@/routes/root";
 import { SessionPage } from "@/routes/session";
+import { SessionsPage } from "@/routes/sessions";
 import { SettingsPage } from "@/routes/settings";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 
@@ -154,6 +155,12 @@ const globalHistoryRoute = createRoute({
   component: GlobalHistoryPage,
 });
 
+const sessionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sessions",
+  component: SessionsPage,
+});
+
 const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/onboarding",
@@ -174,6 +181,7 @@ const onboardingRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   homeRoute,
   sessionRoute,
+  sessionsRoute,
   contextsRoute,
   contextsNewRoute,
   contextsEditRoute,

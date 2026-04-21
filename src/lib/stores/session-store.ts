@@ -33,6 +33,18 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   lastError: null,
 
   async start({ contextId, plannedDurationMinutes, taskIds }) {
+    // Starting a new session while one is active: end the current session
+    // cleanly first so audio stops, its wallpaper is restored, its revert
+    // shortcut runs, and its snapshot is cleared. Otherwise the new session
+    // captures the old session's wallpaper as "original" and leaks audio.
+    if (get().state.phase === "active") {
+      try {
+        await get().end("interrupted");
+      } catch (e) {
+        console.warn("[focrel] failed to end prior session before starting new:", e);
+      }
+    }
+
     set({ lastError: null, state: { phase: "starting", contextId } });
 
     const sessionId = newId();
