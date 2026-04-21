@@ -60,6 +60,16 @@ export function ActiveSessionView({
   }, [remainingSeconds, onRequestEnd]);
 
   const tasks = useTaskStore((s) => s.tasksFor(contextId));
+  const loadByContext = useTaskStore((s) => s.loadByContext);
+
+  // Quick-start paths (tray, card Start button, Sessions launcher) skip the
+  // pre-session panel entirely, so tasks for this context may never have
+  // been loaded into the store. Load on mount; downstream selector picks up
+  // the hydrated list as soon as it lands.
+  React.useEffect(() => {
+    void loadByContext(contextId);
+  }, [contextId, loadByContext]);
+
   // When taskIds is empty (quick-start from tray / card Start button skips
   // the pre-session task picker), fall back to all open tasks for the
   // context so the running session still surfaces something to check off.

@@ -13,6 +13,35 @@ export async function getDb(): Promise<Database> {
   return _db;
 }
 
+// Columns that were added to `contexts` after 0001_init via ADD COLUMN
+// migrations. Treated as a desired-state spec and applied on EVERY launch
+// (not gated on _migrations markers) so stuck markers or manual DB edits
+// can't leave the schema partially upgraded. Order matters for the create
+// case only — ALTER TABLE ADD COLUMN is append-only in SQLite regardless.
+const CONTEXTS_EVOLUTIONS: Array<[column: string, definition: string]> = [
+  ["schedule_enabled", "INTEGER NOT NULL DEFAULT 0"],
+  ["schedule_time", "TEXT"],
+  ["schedule_days", "TEXT NOT NULL DEFAULT ''"],
+  ["schedule_auto_start", "INTEGER NOT NULL DEFAULT 1"],
+  ["music_loop", "INTEGER NOT NULL DEFAULT 1"],
+  ["music_paths", "TEXT NOT NULL DEFAULT '[]'"],
+  ["music_shuffle", "INTEGER NOT NULL DEFAULT 0"],
+];
+
+async function ensureContextsColumns(db: Database): Promise<void> {
+  const existing = await db.select<Array<{ name: string }>>(
+    "PRAGMA table_info(contexts)",
+  );
+  const have = new Set(existing.map((r) => r.name));
+
+  for (const [col, def] of CONTEXTS_EVOLUTIONS) {
+    if (have.has(col)) continue;
+    // SQLite doesn't allow parameter binding on DDL, but column/def values
+    // here are hard-coded constants — no user input involved.
+    await db.execute(`ALTER TABLE contexts ADD COLUMN ${col} ${def}`);
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   const db = await getDb();
 
@@ -43,6 +72,13 @@ export async function runMigrations(): Promise<void> {
       Date.now(),
     ]);
   }
+
+  // Ensure every column the app expects on `contexts` is present, regardless
+  // of the state of the _migrations markers below. This is the safety net
+  // that caught a sqlx-sqlite panic ("len is 20 but index is 20") from a DB
+  // where a previous 0004 attempt recorded the marker without applying the
+  // ALTER. The blocks below stay for chronological bookkeeping.
+  await ensureContextsColumns(db);
 
   const rows2 = await db.select<Array<{ name: string }>>(
     "SELECT name FROM _migrations WHERE name = ?",
