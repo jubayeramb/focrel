@@ -11,5 +11,18 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 export async function notify(title: string, body: string): Promise<void> {
-  if (await ensurePermission()) sendNotification({ title, body });
+  try {
+    const granted = await ensurePermission();
+    if (!granted) {
+      console.warn(
+        "[focrel] notify skipped — macOS notification permission not granted.",
+        { title },
+      );
+      return;
+    }
+    sendNotification({ title, body });
+    console.log("[focrel] notify sent:", title);
+  } catch (err) {
+    console.error("[focrel] notify failed:", err);
+  }
 }
