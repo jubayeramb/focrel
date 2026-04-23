@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { RefreshCw, Search } from "lucide-react";
+import { Check, RefreshCw, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RunningApp } from "@/lib/os/apps";
 import { apps } from "@/lib/os";
@@ -75,7 +75,7 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
 
   return (
     <div className={cn("rounded-lg border border-border bg-card", disabled && "opacity-50")}>
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-xs font-medium text-muted-foreground">
           {value.length > 0 ? `${value.length} selected` : "None selected"}
         </span>
@@ -84,8 +84,8 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           onClick={handleRefresh}
           disabled={disabled || loading}
           className={cn(
-            "h-6 w-6 flex items-center justify-center rounded-md",
-            "hover:bg-accent transition-colors",
+            "flex h-6 w-6 items-center justify-center rounded-md",
+            "transition-colors hover:bg-accent",
             "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
@@ -95,8 +95,8 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
         </button>
       </div>
 
-      <div className="relative px-3 py-2 border-b border-border">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+      <div className="relative border-b border-border px-3 py-2">
+        <Search className="pointer-events-none absolute left-5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={query}
@@ -104,7 +104,7 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           disabled={disabled}
           placeholder="Filter apps…"
           className={cn(
-            "w-full pl-6 py-0.5 text-sm bg-transparent",
+            "w-full bg-transparent py-0.5 pl-6 text-sm",
             "placeholder:text-muted-foreground",
             "focus:outline-hidden",
             "disabled:cursor-not-allowed",
@@ -113,45 +113,55 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
       </div>
 
       {fallback && (
-        <p className="px-3 py-1.5 text-xs text-amber-600 dark:text-amber-400 border-b border-border">
-          Showing running apps — couldn't scan installed apps.
+        <p className="border-b border-border px-3 py-1.5 text-xs text-amber-600 dark:text-amber-400">
+          Showing running apps — couldn&apos;t scan installed apps.
         </p>
       )}
-      <div className="overflow-y-auto" style={{ maxHeight: "240px" }}>
-        {error && (
-          <p className="px-3 py-4 text-xs text-destructive text-center">{error}</p>
-        )}
-        {!error && sorted.length === 0 && (
-          <p className="px-3 py-4 text-xs text-muted-foreground text-center">
+
+      {/* Grid — icon tiles, selected state via primary ring + corner check.
+          Layout and density are tuned to read like a macOS Launchpad grid. */}
+      <div className="max-h-[320px] overflow-y-auto p-2">
+        {error ? (
+          <p className="py-4 text-center text-xs text-destructive">{error}</p>
+        ) : sorted.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
             {loading ? "Loading…" : "No apps found. Try refreshing."}
           </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+            {sorted.map((app) => {
+              const checked = value.includes(app.bundleId);
+              return (
+                <button
+                  key={app.bundleId}
+                  type="button"
+                  onClick={() => toggle(app.bundleId)}
+                  disabled={disabled}
+                  title={`${app.name}\n${app.bundleId}`}
+                  aria-pressed={checked}
+                  className={cn(
+                    "group relative flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 transition-colors",
+                    "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+                    checked
+                      ? "border-primary bg-primary/10"
+                      : "border-transparent hover:bg-accent",
+                    disabled && "cursor-not-allowed",
+                  )}
+                >
+                  {checked && (
+                    <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                      <Check className="size-2.5" strokeWidth={3} />
+                    </span>
+                  )}
+                  <AppIcon bundleId={app.bundleId} bundlePath={app.bundlePath} name={app.name} />
+                  <span className="line-clamp-2 w-full text-center text-[11px] leading-tight text-foreground">
+                    {app.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
-        {sorted.map((app) => {
-          const checked = value.includes(app.bundleId);
-          return (
-            <label
-              key={app.bundleId}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
-                "hover:bg-accent hover:text-accent-foreground",
-                disabled && "cursor-not-allowed",
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => toggle(app.bundleId)}
-                className="rounded border-input accent-primary"
-              />
-              <AppIcon bundleId={app.bundleId} bundlePath={app.bundlePath} name={app.name} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{app.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{app.bundleId}</p>
-              </div>
-            </label>
-          );
-        })}
       </div>
     </div>
   );
@@ -203,14 +213,14 @@ function AppIcon({
       <img
         src={src}
         alt=""
-        className="size-6 rounded-md shrink-0"
+        className="size-10 shrink-0 rounded-lg"
         onError={() => setFailed(true)}
       />
     );
   }
   const letter = (name[0] ?? "?").toUpperCase();
   return (
-    <div className="size-6 rounded-md bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0">
+    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
       {letter}
     </div>
   );
