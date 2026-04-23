@@ -6,6 +6,7 @@ import { initSessionTimeoutWatcher } from "./session-timeout-watcher";
 import { useContextStore } from "./stores/context-store";
 import { useSessionStore } from "./stores/session-store";
 import { useSettingsStore } from "./stores/settings-store";
+import { initUpdaterBackgroundCheck } from "./stores/updater-store";
 import { initTrayBridge } from "./tray-bridge";
 
 export async function runStartupHooks(): Promise<void> {
@@ -20,6 +21,7 @@ export async function runStartupHooks(): Promise<void> {
   void initHotkeyBootstrap();
   initScheduler();
   initSessionTimeoutWatcher();
+  initUpdaterBackgroundCheck();
   // Kick off the notification permission prompt on first launch instead of
   // lazily at session-end — if the user is AFK when the timer hits zero and
   // permission was never granted, `notify` would silently no-op. Fire-and-

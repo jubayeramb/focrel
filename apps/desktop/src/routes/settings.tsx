@@ -1,5 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Database, Keyboard, Monitor, Moon, Power, Sun, Zap } from "lucide-react";
+import {
+  CheckCircle2,
+  Database,
+  DownloadCloud,
+  Keyboard,
+  Monitor,
+  Moon,
+  Power,
+  RefreshCw,
+  Sun,
+  Zap,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { sessionsRepo } from "@/lib/db";
 import { autostart } from "@/lib/os/autostart";
 import { useSettingsStore } from "@/lib/stores/settings-store";
+import { useUpdaterStore } from "@/lib/stores/updater-store";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -173,8 +185,132 @@ export function SettingsPage() {
         }}
       />
 
+      <UpdatesSection />
+
       <DataSection />
     </div>
+  );
+}
+
+// ─── Updates section ──────────────────────────────────────────────────────────
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function UpdatesSection() {
+  const summary = useUpdaterStore((s) => s.summary);
+  const checking = useUpdaterStore((s) => s.checking);
+  const installPhase = useUpdaterStore((s) => s.installPhase);
+  const lastError = useUpdaterStore((s) => s.lastError);
+  const lastCheckedAt = useUpdaterStore((s) => s.lastCheckedAt);
+  const check = useUpdaterStore((s) => s.check);
+  const startInstall = useUpdaterStore((s) => s.startInstall);
+  const clearError = useUpdaterStore((s) => s.clearError);
+
+  const available = summary?.available === true;
+  const busy = checking || installPhase.kind !== "idle";
+
+  let statusLine: React.ReactNode;
+  if (installPhase.kind === "downloading") {
+    const pct =
+      installPhase.total !== null && installPhase.total > 0
+        ? Math.min(100, Math.round((installPhase.downloaded / installPhase.total) * 100))
+        : null;
+    statusLine = (
+      <span className="text-xs text-muted-foreground">
+        Downloading update… {pct !== null ? `${pct}%` : formatBytes(installPhase.downloaded)}
+      </span>
+    );
+  } else if (installPhase.kind === "installing") {
+    statusLine = <span className="text-xs text-muted-foreground">Installing… app will restart.</span>;
+  } else if (available && summary) {
+    statusLine = (
+      <span className="text-xs text-foreground">
+        Update available:{" "}
+        <span className="font-medium">v{summary.version}</span>
+        {summary.currentVersion && (
+          <span className="text-muted-foreground"> · from v{summary.currentVersion}</span>
+        )}
+      </span>
+    );
+  } else if (summary) {
+    statusLine = (
+      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="size-3.5" />
+        You&apos;re up to date
+      </span>
+    );
+  } else if (checking) {
+    statusLine = <span className="text-xs text-muted-foreground">Checking…</span>;
+  } else if (lastCheckedAt) {
+    statusLine = <span className="text-xs text-muted-foreground">Last checked just now.</span>;
+  } else {
+    statusLine = <span className="text-xs text-muted-foreground">Not checked yet.</span>;
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <DownloadCloud className="size-4" />
+          Updates
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Focrel checks for new releases in the background. You can also check manually.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">{statusLine}</div>
+          {available ? (
+            <Button
+              size="sm"
+              onClick={() => void startInstall()}
+              disabled={busy}
+            >
+              {installPhase.kind === "idle" ? "Install & restart" : "Installing…"}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void check()}
+              disabled={busy}
+              className="gap-1.5"
+            >
+              <RefreshCw className={["size-3.5", checking ? "animate-spin" : ""].join(" ")} />
+              {checking ? "Checking…" : "Check now"}
+            </Button>
+          )}
+        </div>
+
+        {available && summary?.notes && (
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              What&apos;s new
+            </p>
+            <p className="whitespace-pre-wrap text-xs text-foreground">{summary.notes}</p>
+          </div>
+        )}
+
+        {lastError !== null && (
+          <div className="flex items-start justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
+            <p className="text-xs text-destructive">Update check failed: {lastError}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearError}
+              className="h-auto p-0 text-xs text-destructive hover:text-destructive shrink-0"
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
