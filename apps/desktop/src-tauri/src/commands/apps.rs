@@ -59,9 +59,11 @@ pub async fn open_apps(bundle_ids: Vec<String>) -> AppResult<Vec<String>> {
 
 #[tauri::command]
 pub async fn list_running_apps() -> AppResult<Vec<RunningApp>> {
+    // Use the default (block) format — `-all` dumps a flat single-line
+    // key=value soup per app that's much harder to parse reliably, while the
+    // default layout is the one `parse_lsappinfo` is built around.
     let output = tokio::process::Command::new("lsappinfo")
         .arg("list")
-        .arg("-all")
         .output()
         .await
         .map_err(|e| AppError::Other(format!("failed to spawn lsappinfo: {e}")))?;
