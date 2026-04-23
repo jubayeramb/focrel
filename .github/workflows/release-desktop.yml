@@ -1,0 +1,157 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS (universal, unsigned beta)
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Derive the bare version from the tag once so later steps
+      # --- can embed it into the update manifest without reparsing.
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#desktop-v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building $TAG (version $VERSION)"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Cargo registry + build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - run: pnpm install --frozen-lockfile
+
+      # Tauri's `generate_context!` macro validates `frontendDist` at compile
+      # time, so the Vite build has to land before `cargo tauri build` runs.
+      - name: Build frontend
+        run: pnpm --filter @focrel/desktop build
+
+      - name: Build universal macOS DMG
+        working-directory: apps/desktop
+        env:
+          # Update-signing (NOT Apple code-signing). This key pair verifies
+          # the tar.gz bundle downloaded by tauri-plugin-updater; the public
+          # half lives in tauri.conf.json, the private half in this secret.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Apple code-signing env vars are deliberately unset for the beta.
+          # When we enroll in the Apple Developer Program we'll add:
+          #   APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,
+          #   APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID
+          # (see tauri-action readme for semantics) and flip `signingIdentity`
+          # in tauri.conf.json.
+        run: pnpm tauri build --target universal-apple-darwin
+
+      # --- Capture the built artefacts so later steps can read them by path
+      # --- without hunting around Tauri's deeply-nested bundle dir.
+      - name: Collect bundle artefacts
+        id: bundle
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle"
+          DMG_PATH="$(find "$BUNDLE_DIR/dmg" -maxdepth 1 -name '*.dmg' | head -n1)"
+          TAR_PATH="$(find "$BUNDLE_DIR/macos" -maxdepth 1 -name '*.app.tar.gz' | head -n1)"
+          SIG_PATH="${TAR_PATH}.sig"
+
+          if [[ -z "$DMG_PATH" || -z "$TAR_PATH" || ! -f "$SIG_PATH" ]]; then
+            echo "::error::Missing bundle artefact. dmg=$DMG_PATH tar=$TAR_PATH sig=$SIG_PATH"
+            exit 1
+          fi
+
+          echo "dmg=$DMG_PATH" >> "$GITHUB_OUTPUT"
+          echo "tar=$TAR_PATH" >> "$GITHUB_OUTPUT"
+          echo "sig=$SIG_PATH" >> "$GITHUB_OUTPUT"
+
+      # --- Build the update manifest (latest.json) the updater fetches on
+      # --- every launch. Download URLs point at the same assets uploaded
+      # --- to this release in the step below.
+      - name: Generate latest.json
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          TAR_NAME="$(basename '${{ steps.bundle.outputs.tar }}')"
+          SIG_CONTENT="$(cat '${{ steps.bundle.outputs.sig }}')"
+          PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${TAR_NAME}"
+
+          # Single universal binary covers both macOS architectures.
+          jq -n \
+            --arg version "$VERSION" \
+            --arg pub_date "$PUB_DATE" \
+            --arg url "$ASSET_URL" \
+            --arg sig "$SIG_CONTENT" \
+            '{
+              version: $version,
+              notes: "See the GitHub release for changelog.",
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-x86_64": { signature: $sig, url: $url },
+                "darwin-aarch64": { signature: $sig, url: $url }
+              }
+            }' > latest.json
+
+          echo "--- latest.json ---"
+          cat latest.json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Focrel ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            ${{ steps.bundle.outputs.dmg }}
+            ${{ steps.bundle.outputs.tar }}
+            ${{ steps.bundle.outputs.sig }}
+            latest.json
+
+      # --- Nudge Cloudflare Pages to redeploy so /download picks up the
+      # --- new version by pinging the existing deploy-web workflow with
+      # --- a workflow_dispatch.
+      - name: Trigger web redeploy
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'deploy-web.yml',
+                ref: 'main',
+              });
+              core.info('Dispatched deploy-web.yml on main');
+            } catch (e) {
+              core.warning(`Could not dispatch deploy-web.yml: ${e.message}`);
+            }
