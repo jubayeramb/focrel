@@ -1,6 +1,6 @@
 {
   "name": "@focrel/brand",
-  "version": "0.0.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Shared brand tokens, copy, and assets for Focrel apps",

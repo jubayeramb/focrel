@@ -1,7 +1,7 @@
 {
   "name": "focrel",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Focrel monorepo — context-switching focus app (desktop, web)",
   "scripts": {
     "dev": "turbo run dev",

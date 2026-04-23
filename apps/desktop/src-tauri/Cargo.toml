@@ -1,6 +1,6 @@
 [package]
 name = "focrel"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local-first macOS context-switching focus app"
 authors = ["Jubayer Al Mamun <jubayeramb@gmail.com>"]
 edition = "2021"
