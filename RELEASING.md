@@ -74,7 +74,8 @@ After the workflow goes green:
 
 - [ ] GitHub Release page for the tag shows four files: `Focrel_<ver>_universal.dmg`, `Focrel.app.tar.gz`, `Focrel.app.tar.gz.sig`, `latest.json`.
 - [ ] `https://focrel.com/download` shows the new version (Cloudflare Pages redeploy may lag by a minute or two).
-- [ ] Download the DMG on a clean Mac, right-click → Open, verify the app launches and notifications fire.
+- [ ] Download the DMG on a clean Mac, run `xattr -cr /Applications/Focrel.app`, verify the app launches and notifications fire. (macOS 15+ disabled the old right-click → Open bypass for fully unsigned apps.)
+- [ ] To simulate a fresh install on your own machine without wiping another Mac, run `scripts/reset-user-data.sh` — it removes every bit of state Focrel keeps under `~/Library/` so the next launch hits onboarding from scratch.
 - [ ] On an existing older install, open Settings → Updates → **Check now**. Expect "Update available · v<new>", click **Install & restart**, and confirm the app relaunches at the new version with all contexts/sessions intact.
 
 ---
