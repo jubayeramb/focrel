@@ -56,19 +56,36 @@ function toContext(row: ContextRow): Context {
   };
 }
 
+// Explicit column list, in a fixed order. We avoid `SELECT *` here because
+// sqlx-sqlite's prepared-statement cache can panic ("index out of bounds:
+// len is N but index is N") when a query prepared before an ALTER TABLE ADD
+// COLUMN is re-executed in the same session. Explicit names bind the prepare
+// to the current physical schema, which stays stable after `ensureContextsColumns`.
+const SELECT_COLUMNS = `
+  id, name, description, color, icon,
+  wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
+  apps_to_quit, apps_to_start, blocked_sites, default_duration_minutes,
+  schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
+  music_loop, music_paths, music_shuffle,
+  created_at, updated_at, archived_at
+`;
+
 export const contextsRepo = {
   async list({ includeArchived = false }: { includeArchived?: boolean } = {}): Promise<Context[]> {
     const db = await getDb();
     const sql = includeArchived
-      ? "SELECT * FROM contexts ORDER BY created_at ASC"
-      : "SELECT * FROM contexts WHERE archived_at IS NULL ORDER BY created_at ASC";
+      ? `SELECT ${SELECT_COLUMNS} FROM contexts ORDER BY created_at ASC`
+      : `SELECT ${SELECT_COLUMNS} FROM contexts WHERE archived_at IS NULL ORDER BY created_at ASC`;
     const rows = await db.select<ContextRow[]>(sql);
     return rows.map(toContext);
   },
 
   async get(id: string): Promise<Context | null> {
     const db = await getDb();
-    const rows = await db.select<ContextRow[]>("SELECT * FROM contexts WHERE id = ?", [id]);
+    const rows = await db.select<ContextRow[]>(
+      `SELECT ${SELECT_COLUMNS} FROM contexts WHERE id = ?`,
+      [id],
+    );
     return rows.length > 0 ? toContext(rows[0]) : null;
   },
 
