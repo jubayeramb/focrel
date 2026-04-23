@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { Check, RefreshCw, Search } from "lucide-react";
+import { Check, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RunningApp } from "@/lib/os/apps";
 import { apps } from "@/lib/os";
@@ -104,12 +104,28 @@ export function AppPicker({ value, onChange, disabled }: AppPickerProps) {
           disabled={disabled}
           placeholder="Filter apps…"
           className={cn(
-            "w-full bg-transparent py-0.5 pl-6 text-sm",
+            "w-full bg-transparent py-0.5 pl-6 pr-6 text-sm",
             "placeholder:text-muted-foreground",
             "focus:outline-hidden",
             "disabled:cursor-not-allowed",
           )}
         />
+        {query.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            disabled={disabled}
+            aria-label="Clear search"
+            className={cn(
+              "absolute right-4 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full",
+              "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+              "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+          >
+            <X className="size-3" strokeWidth={2.5} />
+          </button>
+        )}
       </div>
 
       {fallback && (
