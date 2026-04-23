@@ -15,6 +15,7 @@ export const contexts = sqliteTable("contexts", {
   defaultDurationMinutes: integer("default_duration_minutes").notNull().default(25),
   scheduleEnabled: integer("schedule_enabled").notNull().default(0),
   scheduleTime: text("schedule_time"),
+  scheduleTimes: text("schedule_times").notNull().default("[]"),
   scheduleDays: text("schedule_days").notNull().default(""),
   scheduleAutoStart: integer("schedule_auto_start").notNull().default(1),
   musicLoop: integer("music_loop").notNull().default(1),

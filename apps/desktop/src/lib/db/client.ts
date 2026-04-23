@@ -28,6 +28,10 @@ const CONTEXTS_EVOLUTIONS: Array<[column: string, definition: string]> = [
   ["music_shuffle", "INTEGER NOT NULL DEFAULT 0"],
   ["apps_to_start", "TEXT NOT NULL DEFAULT '[]'"],
   ["quit_all_apps", "INTEGER NOT NULL DEFAULT 0"],
+  // JSON array of "HH:MM" strings — supersedes the single `schedule_time`
+  // column. The legacy column is kept in sync with the first entry so any
+  // remaining single-time readers still work.
+  ["schedule_times", "TEXT NOT NULL DEFAULT '[]'"],
 ];
 
 async function ensureContextsColumns(db: Database): Promise<void> {

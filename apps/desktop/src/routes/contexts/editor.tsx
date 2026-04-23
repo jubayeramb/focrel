@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskFilters } from "@/components/task-filters";
@@ -38,7 +39,7 @@ interface ContextDraft {
   blockedSites: string[];
   defaultDurationMinutes: number;
   scheduleEnabled: number;
-  scheduleTime: string;
+  scheduleTimes: string[];
   scheduleDays: number[];
   scheduleAutoStart: number;
   musicLoop: number;
@@ -61,7 +62,7 @@ const defaultDraft: ContextDraft = {
   blockedSites: [],
   defaultDurationMinutes: 25,
   scheduleEnabled: 0,
-  scheduleTime: "",
+  scheduleTimes: [],
   scheduleDays: [],
   scheduleAutoStart: 1,
   musicLoop: 1,
@@ -121,7 +122,19 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         blockedSites: JSON.parse(loaded.blockedSites) as string[],
         defaultDurationMinutes: loaded.defaultDurationMinutes,
         scheduleEnabled: loaded.scheduleEnabled,
-        scheduleTime: loaded.scheduleTime ?? "",
+        scheduleTimes: (() => {
+          try {
+            const parsed = JSON.parse(loaded.scheduleTimes) as unknown;
+            if (Array.isArray(parsed)) {
+              const list = parsed.filter((t): t is string => typeof t === "string");
+              if (list.length > 0) return list;
+            }
+          } catch {
+            /* noop */
+          }
+          // Back-compat: lift the legacy single-time column into a list.
+          return loaded.scheduleTime ? [loaded.scheduleTime] : [];
+        })(),
         scheduleDays: loaded.scheduleDays
           ? loaded.scheduleDays.split(",").filter(Boolean).map(Number)
           : [],
@@ -215,7 +228,13 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         blockedSites: JSON.stringify(draft.blockedSites),
         defaultDurationMinutes: draft.defaultDurationMinutes,
         scheduleEnabled: draft.scheduleEnabled,
-        scheduleTime: draft.scheduleEnabled && draft.scheduleTime ? draft.scheduleTime : null,
+        // Keep the legacy single-time column in sync with the first entry
+        // so any pre-multi-time reader (tray bridge etc.) still works.
+        scheduleTime:
+          draft.scheduleEnabled && draft.scheduleTimes[0] ? draft.scheduleTimes[0] : null,
+        scheduleTimes: JSON.stringify(
+          draft.scheduleEnabled ? draft.scheduleTimes.filter(Boolean) : [],
+        ),
         scheduleDays: draft.scheduleDays.join(","),
         scheduleAutoStart: draft.scheduleAutoStart,
         musicLoop: draft.musicLoop,
@@ -548,12 +567,67 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           {draft.scheduleEnabled === 1 && (
             <>
               <div className="space-y-1.5">
-                <Label>Time</Label>
-                <TimePicker
-                  value={draft.scheduleTime || "09:00"}
-                  onChange={(v) => patch("scheduleTime", v)}
-                  disabled={saving}
-                />
+                <Label>Times</Label>
+                <div className="space-y-1.5">
+                  {(draft.scheduleTimes.length === 0
+                    ? ["09:00"]
+                    : draft.scheduleTimes
+                  ).map((value, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <TimePicker
+                          value={value || "09:00"}
+                          onChange={(v) => {
+                            const next =
+                              draft.scheduleTimes.length === 0
+                                ? [v]
+                                : draft.scheduleTimes.map((t, i) => (i === idx ? v : t));
+                            patch("scheduleTimes", next);
+                          }}
+                          disabled={saving}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (draft.scheduleTimes.length <= 1) {
+                            patch("scheduleTimes", []);
+                          } else {
+                            patch(
+                              "scheduleTimes",
+                              draft.scheduleTimes.filter((_, i) => i !== idx),
+                            );
+                          }
+                        }}
+                        disabled={saving}
+                        aria-label="Remove time"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const base =
+                        draft.scheduleTimes.length > 0
+                          ? draft.scheduleTimes
+                          : ["09:00"];
+                      patch("scheduleTimes", [...base, "12:00"]);
+                    }}
+                    disabled={saving}
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    <Plus className="size-3.5" />
+                    Add time
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Fire the session at every listed time on the selected days.
+                </p>
               </div>
 
               <div className="space-y-1.5">

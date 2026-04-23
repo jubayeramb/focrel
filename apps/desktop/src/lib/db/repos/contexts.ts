@@ -17,6 +17,7 @@ type ContextRow = {
   default_duration_minutes: number;
   schedule_enabled: number;
   schedule_time: string | null;
+  schedule_times: string;
   schedule_days: string;
   schedule_auto_start: number;
   music_loop: number;
@@ -45,6 +46,7 @@ function toContext(row: ContextRow): Context {
     defaultDurationMinutes: row.default_duration_minutes,
     scheduleEnabled: row.schedule_enabled,
     scheduleTime: row.schedule_time,
+    scheduleTimes: row.schedule_times,
     scheduleDays: row.schedule_days,
     scheduleAutoStart: row.schedule_auto_start,
     musicLoop: row.music_loop,
@@ -67,7 +69,7 @@ const SELECT_COLUMNS = `
   id, name, description, color, icon,
   wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
   apps_to_quit, apps_to_start, quit_all_apps, blocked_sites, default_duration_minutes,
-  schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
+  schedule_enabled, schedule_time, schedule_times, schedule_days, schedule_auto_start,
   music_loop, music_paths, music_shuffle,
   created_at, updated_at, archived_at
 `;
@@ -102,10 +104,10 @@ export const contextsRepo = {
         id, name, description, color, icon,
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
-        schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
+        schedule_enabled, schedule_time, schedule_times, schedule_days, schedule_auto_start,
         music_loop, music_paths, music_shuffle, apps_to_start, quit_all_apps,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -121,6 +123,7 @@ export const contextsRepo = {
         input.defaultDurationMinutes ?? 25,
         input.scheduleEnabled ?? 0,
         input.scheduleTime ?? null,
+        input.scheduleTimes ?? "[]",
         input.scheduleDays ?? "",
         input.scheduleAutoStart ?? 1,
         input.musicLoop ?? 1,
@@ -155,6 +158,7 @@ export const contextsRepo = {
     if (patch.defaultDurationMinutes !== undefined) { fields.push("default_duration_minutes = ?"); values.push(patch.defaultDurationMinutes); }
     if (patch.scheduleEnabled !== undefined) { fields.push("schedule_enabled = ?"); values.push(patch.scheduleEnabled); }
     if (patch.scheduleTime !== undefined) { fields.push("schedule_time = ?"); values.push(patch.scheduleTime); }
+    if (patch.scheduleTimes !== undefined) { fields.push("schedule_times = ?"); values.push(patch.scheduleTimes); }
     if (patch.scheduleDays !== undefined) { fields.push("schedule_days = ?"); values.push(patch.scheduleDays); }
     if (patch.scheduleAutoStart !== undefined) { fields.push("schedule_auto_start = ?"); values.push(patch.scheduleAutoStart); }
     if (patch.musicLoop !== undefined) { fields.push("music_loop = ?"); values.push(patch.musicLoop); }
