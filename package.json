@@ -11,6 +11,7 @@
     "format": "biome format --write .",
     "clean": "turbo run clean && rm -rf node_modules",
     "desktop": "pnpm --filter @focrel/desktop",
+    "desktop:clean": "pnpm --filter @focrel/desktop clean",
     "desktop:dev": "pnpm --filter @focrel/desktop tauri:dev",
     "desktop:build": "pnpm --filter @focrel/desktop tauri:build",
     "web": "pnpm --filter @focrel/web",

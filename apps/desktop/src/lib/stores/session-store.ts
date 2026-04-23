@@ -181,6 +181,21 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         appsActuallyQuit = await apps.quitApps(appsToQuit);
       }
 
+      // Launch apps the user wants open for this context. Runs AFTER quit so
+      // a clean slate is established first — if an id appears in both lists
+      // (user misconfiguration) the app ends up open, which is the safer
+      // default for a session that requested it to launch.
+      let appsToStart: string[] = [];
+      try {
+        appsToStart = JSON.parse(context.appsToStart) as string[];
+      } catch {
+        appsToStart = [];
+      }
+
+      if (appsToStart.length > 0) {
+        await apps.openApps(appsToStart);
+      }
+
       const finalSnap: snapshot.Snapshot = {
         ...initialSnap,
         sessionId: session.id,

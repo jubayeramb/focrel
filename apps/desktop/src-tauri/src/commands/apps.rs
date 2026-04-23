@@ -33,6 +33,30 @@ pub async fn quit_apps(bundle_ids: Vec<String>) -> AppResult<Vec<String>> {
     Ok(succeeded)
 }
 
+/// Launch (or activate, if already running) each app by bundle id.
+/// Uses macOS `open -b <id>` which needs no Accessibility / osascript grants.
+#[tauri::command]
+pub async fn open_apps(bundle_ids: Vec<String>) -> AppResult<Vec<String>> {
+    let mut succeeded = Vec::new();
+
+    for id in &bundle_ids {
+        let status = tokio::process::Command::new("open")
+            .arg("-b")
+            .arg(id)
+            .status()
+            .await
+            .map_err(|e| AppError::Other(format!("failed to spawn open: {e}")))?;
+
+        if status.success() {
+            succeeded.push(id.clone());
+        } else {
+            log::warn!("open -b {id} failed (exit {:?})", status.code());
+        }
+    }
+
+    Ok(succeeded)
+}
+
 #[tauri::command]
 pub async fn list_running_apps() -> AppResult<Vec<RunningApp>> {
     let output = tokio::process::Command::new("lsappinfo")

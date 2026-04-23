@@ -22,6 +22,7 @@ type ContextRow = {
   music_loop: number;
   music_paths: string;
   music_shuffle: number;
+  apps_to_start: string;
   created_at: number;
   updated_at: number;
   archived_at: number | null;
@@ -48,6 +49,7 @@ function toContext(row: ContextRow): Context {
     musicLoop: row.music_loop,
     musicPaths: row.music_paths,
     musicShuffle: row.music_shuffle,
+    appsToStart: row.apps_to_start,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -82,9 +84,9 @@ export const contextsRepo = {
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
         schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
-        music_loop, music_paths, music_shuffle,
+        music_loop, music_paths, music_shuffle, apps_to_start,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -105,6 +107,7 @@ export const contextsRepo = {
         input.musicLoop ?? 1,
         input.musicPaths ?? "[]",
         input.musicShuffle ?? 0,
+        input.appsToStart ?? "[]",
         now,
         now,
         input.archivedAt ?? null,
@@ -137,6 +140,7 @@ export const contextsRepo = {
     if (patch.musicLoop !== undefined) { fields.push("music_loop = ?"); values.push(patch.musicLoop); }
     if (patch.musicPaths !== undefined) { fields.push("music_paths = ?"); values.push(patch.musicPaths); }
     if (patch.musicShuffle !== undefined) { fields.push("music_shuffle = ?"); values.push(patch.musicShuffle); }
+    if (patch.appsToStart !== undefined) { fields.push("apps_to_start = ?"); values.push(patch.appsToStart); }
     if (patch.archivedAt !== undefined) { fields.push("archived_at = ?"); values.push(patch.archivedAt); }
 
     values.push(id);

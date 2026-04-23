@@ -9,6 +9,9 @@ export type RunningApp = {
 export const quitApps = (bundleIds: string[]) =>
   invoke<string[]>("quit_apps", { bundleIds });
 
+export const openApps = (bundleIds: string[]) =>
+  invoke<string[]>("open_apps", { bundleIds });
+
 type RawApp = { bundle_id: string; name: string; bundle_path?: string };
 
 export const listRunningApps = async (): Promise<RunningApp[]> => {

@@ -26,6 +26,7 @@ const CONTEXTS_EVOLUTIONS: Array<[column: string, definition: string]> = [
   ["music_loop", "INTEGER NOT NULL DEFAULT 1"],
   ["music_paths", "TEXT NOT NULL DEFAULT '[]'"],
   ["music_shuffle", "INTEGER NOT NULL DEFAULT 0"],
+  ["apps_to_start", "TEXT NOT NULL DEFAULT '[]'"],
 ];
 
 async function ensureContextsColumns(db: Database): Promise<void> {

@@ -3,7 +3,9 @@ mod error;
 mod session;
 mod tray;
 
-use commands::apps::{get_app_icon, list_installed_apps, list_running_apps, quit_apps};
+use commands::apps::{
+    get_app_icon, list_installed_apps, list_running_apps, open_apps, quit_apps,
+};
 use commands::audio::{
     audio_is_empty, audio_pause, audio_play, audio_queue, audio_resume, audio_seek,
     audio_set_volume, audio_stop,
@@ -69,6 +71,7 @@ pub fn run() {
             list_shortcuts,
             open_shortcuts_app,
             quit_apps,
+            open_apps,
             list_running_apps,
             list_installed_apps,
             get_app_icon,

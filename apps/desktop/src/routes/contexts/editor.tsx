@@ -33,6 +33,7 @@ interface ContextDraft {
   shortcutName: string | null;
   revertShortcutName: string | null;
   appsToQuit: string[];
+  appsToStart: string[];
   blockedSites: string[];
   defaultDurationMinutes: number;
   scheduleEnabled: number;
@@ -54,6 +55,7 @@ const defaultDraft: ContextDraft = {
   shortcutName: null,
   revertShortcutName: null,
   appsToQuit: [],
+  appsToStart: [],
   blockedSites: [],
   defaultDurationMinutes: 25,
   scheduleEnabled: 0,
@@ -104,6 +106,15 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         shortcutName: loaded.shortcutName,
         revertShortcutName: loaded.revertShortcutName,
         appsToQuit: JSON.parse(loaded.appsToQuit) as string[],
+        appsToStart: (() => {
+          try {
+            const parsed = JSON.parse(loaded.appsToStart) as unknown;
+            if (Array.isArray(parsed)) return parsed.filter((p): p is string => typeof p === "string");
+          } catch {
+            /* noop */
+          }
+          return [];
+        })(),
         blockedSites: JSON.parse(loaded.blockedSites) as string[],
         defaultDurationMinutes: loaded.defaultDurationMinutes,
         scheduleEnabled: loaded.scheduleEnabled,
@@ -196,6 +207,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         shortcutName: draft.shortcutName,
         revertShortcutName: draft.revertShortcutName,
         appsToQuit: JSON.stringify(draft.appsToQuit),
+        appsToStart: JSON.stringify(draft.appsToStart),
         blockedSites: JSON.stringify(draft.blockedSites),
         defaultDurationMinutes: draft.defaultDurationMinutes,
         scheduleEnabled: draft.scheduleEnabled,
@@ -485,6 +497,15 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
             <AppPicker
               value={draft.appsToQuit}
               onChange={(v) => patch("appsToQuit", v)}
+              disabled={saving}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Apps to open on session start</Label>
+            <AppPicker
+              value={draft.appsToStart}
+              onChange={(v) => patch("appsToStart", v)}
               disabled={saving}
             />
           </div>
