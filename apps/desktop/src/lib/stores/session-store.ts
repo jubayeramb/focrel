@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { LogicalSize } from "@tauri-apps/api/dpi";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { contextsRepo, sessionsRepo } from "@/lib/db";
 import type { Context } from "@/lib/db";
 import { wallpaper, audio, shortcuts, apps, snapshot } from "@/lib/os";
@@ -6,6 +8,24 @@ import { notify } from "@/lib/os/notifications";
 import type { ReconcileReport } from "@/lib/os/snapshot";
 import { useMusicStore } from "@/lib/stores/music-store";
 import { newId } from "@/lib/utils/ulid";
+
+// Default full-window dimensions. Has to match `FULL_SIZE` in
+// ActiveSessionView — kept in sync because session-end may fire while the
+// user is in mini-mode, and the window must snap back to full so the next
+// use of the app isn't a tiny always-on-top pane.
+const DEFAULT_WINDOW_SIZE = { width: 1100, height: 720 };
+
+async function restoreFullWindow(): Promise<void> {
+  try {
+    const win = getCurrentWebviewWindow();
+    await win.setAlwaysOnTop(false);
+    await win.setSize(
+      new LogicalSize(DEFAULT_WINDOW_SIZE.width, DEFAULT_WINDOW_SIZE.height),
+    );
+  } catch (err) {
+    console.warn("[focrel] window restore on session end failed:", err);
+  }
+}
 
 function resolvePlaylist(ctx: Context): string[] {
   let paths: string[] = [];
@@ -301,6 +321,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
 
     await snapshot.clearSnapshot();
+
+    // If the user was running the session in mini-mode, the window is still
+    // a 420×480 always-on-top pane. Snap it back to full size now so the
+    // next time they use the app it's at its normal dimensions — otherwise
+    // they'd have to click the Maximize button on an empty Home screen.
+    await restoreFullWindow();
 
     set({ state: { phase: "idle" } });
   },

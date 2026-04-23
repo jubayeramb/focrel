@@ -10,7 +10,7 @@ use commands::audio::{
     audio_is_empty, audio_pause, audio_play, audio_queue, audio_resume, audio_seek,
     audio_set_volume, audio_stop,
 };
-use commands::notify::notify_system;
+use commands::notify::{is_bundled_app, notify_system};
 use commands::shortcuts::{list_shortcuts, open_shortcuts_app, run_shortcut};
 use commands::tray_cmds::{
     tray_set_contexts, tray_set_end_enabled, tray_set_music_state, tray_set_session_label,
@@ -89,6 +89,7 @@ pub fn run() {
             tray_start_ticker,
             tray_stop_ticker,
             notify_system,
+            is_bundled_app,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Tauri application")

@@ -112,17 +112,10 @@ export function ActiveSessionView({
     }
   }
 
-  React.useEffect(() => {
-    // Restore full window if the component unmounts while in mini mode.
-    return () => {
-      if (!miniMode) return;
-      const win = getCurrentWebviewWindow();
-      void win.setSize(new LogicalSize(FULL_SIZE.width, FULL_SIZE.height));
-      void win.setAlwaysOnTop(false);
-    };
-    // Intentionally empty deps: cleanup runs only on unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The "restore on session end" path lives in sessionStore.end() — it
+  // runs whether or not this view is mounted. The previous view-level
+  // cleanup effect had an empty-deps closure over `miniMode` which was
+  // always captured as `false`, so it never actually restored anything.
 
   async function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = parseFloat(e.target.value);

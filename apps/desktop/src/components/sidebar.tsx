@@ -96,7 +96,7 @@ export function Sidebar() {
       <ActiveSessionPill />
 
       {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto px-3 space-y-0.5">
+      <nav className="app-scroll flex-1 overflow-y-auto px-3 space-y-0.5">
         <NavItem icon={<Home className="size-4 shrink-0" />} label="Home" path="/" />
         <NavItem icon={<Play className="size-4 shrink-0" />} label="Sessions" path="/sessions" />
         <NavItem icon={<LayoutGrid className="size-4 shrink-0" />} label="Contexts" path="/contexts" />
