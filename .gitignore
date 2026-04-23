@@ -38,3 +38,8 @@ apps/desktop/src-tauri/Cargo.lock
 
 # Generated
 *.tsbuildinfo
+
+# Generated at release time by scripts/release-notes.mjs — consumed by the
+# release workflow and discarded; keeping it out of history avoids noisy
+# per-tag diffs.
+RELEASE_NOTES.md

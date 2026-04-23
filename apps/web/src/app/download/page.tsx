@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, Github, ShieldAlert, Terminal } from "lucide-react";
+import { ArrowLeft, Download, ShieldAlert, Terminal } from "lucide-react";
 import { productName } from "@focrel/brand";
 import { Footer } from "@/components/marketing/footer";
 import { Navbar } from "@/components/marketing/navbar";
-import {
-  fetchLatestDesktopRelease,
-  formatMB,
-  GH_RELEASES_URL,
-} from "@/lib/releases";
+import { fetchLatestDesktopRelease, formatMB } from "@/lib/releases";
 
 export const metadata: Metadata = {
   title: `Download ${productName} for macOS`,
@@ -93,26 +89,17 @@ function ReleaseCard({
         </a>
       </div>
       {release.notes && (
-        <details className="mt-4 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
-          <summary className="cursor-pointer text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mt-5 rounded-md border border-border bg-muted/20 px-4 py-3">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             What&apos;s new
-          </summary>
-          <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-foreground">
+          </div>
+          <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
             {release.notes}
-          </p>
-        </details>
+          </div>
+        </div>
       )}
-      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-        <a
-          href={release.htmlUrl}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-        >
-          <Github className="size-3.5" />
-          View on GitHub
-        </a>
-        <span>Published {new Date(release.publishedAt).toLocaleDateString()}</span>
+      <div className="mt-4 text-xs text-muted-foreground">
+        Published {new Date(release.publishedAt).toLocaleDateString()}
       </div>
     </div>
   );
@@ -124,16 +111,7 @@ function PendingCard() {
       <div className="text-sm font-medium text-foreground">Release pending</div>
       <p className="mt-2 text-sm text-muted-foreground">
         The first public DMG hasn&apos;t shipped yet — we&apos;re finalizing the
-        release pipeline. Follow along on{" "}
-        <a
-          href={GH_RELEASES_URL}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="underline underline-offset-2 transition-colors hover:text-foreground"
-        >
-          GitHub Releases
-        </a>{" "}
-        or check back soon.
+        release pipeline. Check back soon.
       </p>
     </div>
   );
@@ -150,12 +128,14 @@ function UnsignedInstallGuide() {
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             {productName}
-            {" "}isn&apos;t yet signed with an Apple Developer ID, so macOS
-            blocks the first launch. This extra step is only needed once; after
-            that the app opens normally and auto-updates take over. Code-signing
-            lands in v1.0.
+            {" "}isn&apos;t yet signed with an Apple Developer ID. On macOS 15 and
+            later, Gatekeeper blocks unsigned apps outright — even the classic
+            right-click → Open path no longer works. Code-signing lands in v1.0
+            and this step goes away; until then, you need one of the two
+            workarounds below. Only needed once.
           </p>
-          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-foreground">
+
+          <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm text-foreground">
             <li>
               Download the{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.dmg</code>{" "}
@@ -163,23 +143,33 @@ function UnsignedInstallGuide() {
               <span className="whitespace-nowrap">Applications</span> folder.
             </li>
             <li>
-              <strong>Right-click</strong> (or Control-click) the app icon in
-              Applications → <strong>Open</strong>.
+              <strong>Recommended — Terminal.app, one command:</strong>
+              <div className="mt-2 rounded-md border border-border bg-background/70 px-3 py-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Terminal className="size-3" />
+                  Paste and press return
+                </div>
+                <code className="mt-1 block font-mono text-xs text-foreground">
+                  xattr -cr /Applications/Focrel.app
+                </code>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Strips the quarantine flag macOS set when you downloaded the
+                DMG. Double-click {productName} after running it and it opens
+                normally.
+              </p>
             </li>
             <li>
-              In the dialog that appears, click <strong>Open</strong> again.
-              macOS remembers your choice for future launches.
+              <strong>Or — System Settings:</strong> try opening {productName}
+              once (it&apos;ll be blocked), then go to{" "}
+              <span className="font-medium">
+                System Settings → Privacy &amp; Security
+              </span>
+              , scroll to the &ldquo;{productName} was blocked…&rdquo; message,
+              and click <strong>Open Anyway</strong>. Confirm in the prompt
+              that follows.
             </li>
           </ol>
-          <div className="mt-4 rounded-md border border-border bg-background/70 px-3 py-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <Terminal className="size-3" />
-              Terminal alternative
-            </div>
-            <code className="mt-1 block font-mono text-xs text-foreground">
-              xattr -cr /Applications/Focrel.app
-            </code>
-          </div>
         </div>
       </div>
     </div>

@@ -91,6 +91,12 @@ jobs:
           echo "tar=$TAR_PATH" >> "$GITHUB_OUTPUT"
           echo "sig=$SIG_PATH" >> "$GITHUB_OUTPUT"
 
+      # --- Build a human-readable changelog from commits since the last
+      # --- desktop-v* tag. Grouped by Conventional-Commit type. Feeds both
+      # --- the Release body AND the updater's in-app "what's new" banner.
+      - name: Generate changelog
+        run: node scripts/release-notes.mjs
+
       # --- Build the update manifest (latest.json) the updater fetches on
       # --- every launch. Download URLs point at the same assets uploaded
       # --- to this release in the step below.
@@ -103,16 +109,17 @@ jobs:
           SIG_CONTENT="$(cat '${{ steps.bundle.outputs.sig }}')"
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${TAR_NAME}"
-
-          # Single universal binary covers both macOS architectures.
+          # Read the generated changelog. jq's --rawfile handles multiline
+          # content + escaping without us hand-rolling the JSON escapes.
           jq -n \
             --arg version "$VERSION" \
             --arg pub_date "$PUB_DATE" \
             --arg url "$ASSET_URL" \
             --arg sig "$SIG_CONTENT" \
+            --rawfile notes RELEASE_NOTES.md \
             '{
               version: $version,
-              notes: "See the GitHub release for changelog.",
+              notes: $notes,
               pub_date: $pub_date,
               platforms: {
                 "darwin-x86_64": { signature: $sig, url: $url },
@@ -130,7 +137,9 @@ jobs:
           name: Focrel ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          # body_path wins over generate_release_notes when both are set,
+          # so our grouped changelog replaces GitHub's auto-generated one.
+          body_path: RELEASE_NOTES.md
           files: |
             ${{ steps.bundle.outputs.dmg }}
             ${{ steps.bundle.outputs.tar }}
