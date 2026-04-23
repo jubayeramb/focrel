@@ -105,10 +105,27 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Tauri application")
-        .run(|_app, event| {
-            if let RunEvent::ExitRequested { .. } = event {
-                // Launch-time reconciler is the crash-safety net — no cleanup needed here.
+        .run(|app, event| match event {
+            // Launch-time reconciler is the crash-safety net — no cleanup needed here.
+            RunEvent::ExitRequested { .. } => {
                 log::info!("exit requested; relying on launch-time reconciler for recovery");
             }
+            // macOS fires this when the user clicks the Dock icon of an
+            // already-running app. `has_visible_windows: false` means we
+            // hid the window earlier (red traffic light or tray action) —
+            // surface it again so the Dock click feels like "open app" the
+            // way every other macOS app behaves.
+            RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                if !has_visible_windows {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+            }
+            _ => {}
         });
 }
