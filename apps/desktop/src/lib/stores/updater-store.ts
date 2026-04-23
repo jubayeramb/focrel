@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { notify } from "@/lib/os/notifications";
 import { checkForUpdates, runUpdate, type UpdateSummary } from "@/lib/updater";
 
 type InstallPhase =
@@ -27,10 +28,28 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
 
   async check() {
     if (get().checking) return;
+    const previous = get().summary;
     set({ checking: true, lastError: null });
     try {
       const summary = await checkForUpdates();
       set({ summary, lastCheckedAt: Date.now() });
+
+      // First time we see a new available version (false → true on the
+      // availability flag, or a newer version than the last one we
+      // surfaced), nudge the user with a system notification. Without
+      // this, an update landing while the user is working somewhere
+      // else would only show up the next time they wandered into
+      // Settings. Dedup on version so the 6-hourly tick doesn't re-fire
+      // the banner for the same release.
+      const justBecameAvailable =
+        summary.available &&
+        (!previous?.available || previous.version !== summary.version);
+      if (justBecameAvailable) {
+        void notify(
+          "Focrel update available",
+          `Version ${summary.version} is ready to install. Open Settings → Updates to install it.`,
+        ).catch(() => {});
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.warn("[focrel] updater check failed:", err);

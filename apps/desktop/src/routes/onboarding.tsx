@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Bell, CheckCircle2, Layers, Music, Sparkles, Wand2 } from "lucide-react";
+import { Bell, Check, CheckCircle2, Copy, Layers, Music, Sparkles, Wand2 } from "lucide-react";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import logoUrl from "@focrel/brand/assets/logo.svg";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,39 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
   );
 }
 
+// Small inline "click to copy" chip used for the suggested shortcut names.
+// Reuses lucide's Check icon as the "copied" confirmation and reverts after
+// 1.5s — no toast plumbing needed for a single-purpose affordance.
+function CopyableCode({ text }: { text: string }) {
+  const [copied, setCopied] = React.useState(false);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — swallow silently, user can still type it */
+    }
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded bg-background px-1.5 py-0.5 font-mono text-xs">
+      <span className="text-foreground">{text}</span>
+      <button
+        type="button"
+        onClick={() => void handleCopy()}
+        aria-label={copied ? "Copied" : "Copy shortcut name"}
+        className="flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        {copied ? (
+          <Check className="size-3 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+        ) : (
+          <Copy className="size-3" strokeWidth={2} />
+        )}
+      </button>
+    </span>
+  );
+}
+
 function StepPermissions({ onNext }: { onNext: () => void }) {
   const [notifState, setNotifState] = React.useState<NotifState>("idle");
 
@@ -103,69 +136,42 @@ function StepPermissions({ onNext }: { onNext: () => void }) {
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Wand2 className="size-4" />
           </span>
-          <div className="flex flex-1 flex-col gap-3">
-            <p className="text-sm font-medium text-foreground">
-              macOS Shortcuts for Focus mode
-            </p>
+          <div className="flex flex-1 flex-col gap-1">
+            <p className="text-sm font-medium text-foreground">macOS Focus shortcuts</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Focrel has no private access to macOS Focus — we ask the built-in{" "}
-              <strong className="text-foreground">Shortcuts</strong> app to flip it for you. You set
-              the Shortcut up once; we run it by name on session start and end.
+              Focrel runs two Shortcuts by name to toggle Focus on and off.
             </p>
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-muted/40 p-4">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            One-time setup
+            In Shortcuts.app, create two shortcuts with the <span className="normal-case">Set Focus</span> action
           </p>
           <ol className="list-inside list-decimal space-y-1.5 text-sm text-foreground">
             <li>
-              Click <span className="font-medium">Open Shortcuts app</span> below.
+              <span className="text-muted-foreground">Turn On</span> →{" "}
+              <CopyableCode text="Focrel: Deep Work Focus On" />
             </li>
             <li>
-              In Shortcuts: <span className="font-medium">File → New Shortcut</span>.
-            </li>
-            <li>
-              Search for the action <span className="font-medium">&ldquo;Set Focus&rdquo;</span> and
-              add it. Configure as{" "}
-              <span className="font-medium">Turn Do Not Disturb On</span> (or any Focus mode).
-            </li>
-            <li>
-              Rename the Shortcut to{" "}
-              <code className="rounded bg-background px-1 py-0.5 text-xs">
-                Focrel: Deep Work Focus On
-              </code>
-              .
-            </li>
-            <li>
-              Create a <em>second</em> Shortcut with the Focus action set to{" "}
-              <span className="font-medium">Turn Off</span> — name it{" "}
-              <code className="rounded bg-background px-1 py-0.5 text-xs">
-                Focrel: Deep Work Focus Off
-              </code>
-              .
-            </li>
-            <li>
-              Back in Focrel&apos;s context editor, pick your two Shortcuts under{" "}
-              <span className="font-medium">macOS Shortcut</span> and{" "}
-              <span className="font-medium">Revert Shortcut</span>. Test with the Test button.
+              <span className="text-muted-foreground">Turn Off</span> →{" "}
+              <CopyableCode text="Focrel: Deep Work Focus Off" />
             </li>
           </ol>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onClick={() => void openShortcutsApp()}
-        >
-          Open Shortcuts app
-        </Button>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          You can skip this now and set it up later — contexts without a Shortcut still run in
-          &ldquo;minimal mode&rdquo; (wallpaper, music, apps-to-quit all still work).
-        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void openShortcutsApp()}
+          >
+            Open Shortcuts app
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Optional — contexts without a Shortcut still run wallpaper, music, and apps.
+          </p>
+        </div>
       </section>
 
       {/* Notifications */}
@@ -248,9 +254,13 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [step, setStep] = React.useState(0);
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-16">
+    // Full-viewport column: stepper pins to the top, content gets a centered
+    // flex slot underneath. Short steps (Welcome, Done) sit in the middle of
+    // the window; the long Permissions step fills from the top and scrolls
+    // naturally if it overflows.
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col px-6 py-10">
       {/* Step progress dots */}
-      <div className="mb-10 flex justify-center gap-2">
+      <div className="flex justify-center gap-2">
         {Array.from({ length: STEPS }).map((_, i) => (
           <div
             key={i}
@@ -262,9 +272,11 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         ))}
       </div>
 
-      {step === 0 && <StepWelcome onNext={() => setStep(1)} />}
-      {step === 1 && <StepPermissions onNext={() => setStep(2)} />}
-      {step === 2 && <StepDone onComplete={onComplete} />}
+      <div className="flex flex-1 flex-col justify-center py-10">
+        {step === 0 && <StepWelcome onNext={() => setStep(1)} />}
+        {step === 1 && <StepPermissions onNext={() => setStep(2)} />}
+        {step === 2 && <StepDone onComplete={onComplete} />}
+      </div>
     </div>
   );
 }
