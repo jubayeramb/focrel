@@ -1,6 +1,7 @@
 import { runMigrations, seedIfEmpty } from "./db";
 import { initHotkeyBootstrap } from "./hotkey-bootstrap";
 import { initScheduler } from "./scheduler";
+import { initSessionTimeoutWatcher } from "./session-timeout-watcher";
 import { useContextStore } from "./stores/context-store";
 import { useSessionStore } from "./stores/session-store";
 import { useSettingsStore } from "./stores/settings-store";
@@ -17,4 +18,5 @@ export async function runStartupHooks(): Promise<void> {
   initTrayBridge();
   void initHotkeyBootstrap();
   initScheduler();
+  initSessionTimeoutWatcher();
 }
