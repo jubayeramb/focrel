@@ -262,8 +262,8 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
             variant="outline"
             size="icon"
             className="size-8 rounded-full"
-            onClick={() => adjustDuration(-5)}
-            aria-label="Decrease by 5 minutes"
+            onClick={() => adjustDuration(-1)}
+            aria-label="Decrease by 1 minute"
           >
             <Minus className="size-3.5" />
           </Button>
@@ -272,11 +272,19 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
               type="number"
               value={effectiveDuration}
               onChange={handleDurationInput}
+              onFocus={(e) => e.currentTarget.select()}
               min={1}
               max={480}
+              inputMode="numeric"
+              aria-label="Session duration in minutes"
               className={cn(
-                "w-12 rounded-md border-none bg-transparent p-0 text-center text-lg font-semibold tabular-nums",
+                "w-14 rounded-md border border-input bg-background px-2 py-1 text-center text-lg font-semibold tabular-nums",
+                "transition-colors hover:border-ring",
                 "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+                // Hide the native up/down spinner — the +/- buttons already
+                // cover that affordance and the inline spinner clashes with
+                // our custom stepper layout on WebKit.
+                "[-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none",
               )}
             />
             <span className="text-xs text-muted-foreground">min</span>
@@ -286,8 +294,8 @@ export function PreSessionPanel({ contextId, onStarted, onCancel }: PreSessionPa
             variant="outline"
             size="icon"
             className="size-8 rounded-full"
-            onClick={() => adjustDuration(5)}
-            aria-label="Increase by 5 minutes"
+            onClick={() => adjustDuration(1)}
+            aria-label="Increase by 1 minute"
           >
             <Plus className="size-3.5" />
           </Button>

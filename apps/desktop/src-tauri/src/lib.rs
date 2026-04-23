@@ -18,7 +18,7 @@ use commands::tray_cmds::{
 };
 use commands::wallpaper::{get_wallpaper_all, set_wallpaper};
 use session::snapshot::{snapshot_clear, snapshot_load, snapshot_reconcile, snapshot_save};
-use tauri::{AppHandle, Emitter, Manager, RunEvent};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
 pub fn run() {
@@ -33,6 +33,18 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // Red traffic light on the main window should HIDE the window, not
+        // quit the process — we're a tray-resident app and the user expects
+        // the menubar icon to stay put. Explicit quit still works via cmd+Q,
+        // the tray's "Quit" item, or `app.exit()`.
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
+        })
         .manage(tray::tray_state())
         .manage(tray::tray_handles())
         .setup(|app| {
