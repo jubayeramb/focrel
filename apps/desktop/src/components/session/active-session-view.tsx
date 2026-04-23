@@ -14,6 +14,7 @@ import { LogicalSize } from "@tauri-apps/api/dpi";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { notify } from "@/lib/os/notifications";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useContextStore } from "@/lib/stores/context-store";
 import { useMusicStore } from "@/lib/stores/music-store";
@@ -55,9 +56,18 @@ export function ActiveSessionView({
   React.useEffect(() => {
     if (remainingSeconds === 0 && !autoEndFired.current) {
       autoEndFired.current = true;
+      // Fire a system notification so the user catches the moment even if
+      // they stepped away from the desk. Read the context directly from the
+      // store to keep this effect dep-light.
+      const ctx = useContextStore.getState().getById(contextId);
+      const ctxName = ctx?.name ?? "Session";
+      void notify(
+        "Session time is over",
+        `${ctxName} · ${plannedDurationMinutes}m planned`,
+      ).catch(() => {});
       onRequestEnd(true);
     }
-  }, [remainingSeconds, onRequestEnd]);
+  }, [remainingSeconds, onRequestEnd, contextId, plannedDurationMinutes]);
 
   const tasks = useTaskStore((s) => s.tasksFor(contextId));
   const loadByContext = useTaskStore((s) => s.loadByContext);
