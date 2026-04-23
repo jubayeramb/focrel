@@ -16,7 +16,10 @@
     "desktop:build": "pnpm --filter @focrel/desktop tauri:build",
     "web": "pnpm --filter @focrel/web",
     "web:dev": "pnpm --filter @focrel/web dev",
-    "web:build": "pnpm --filter @focrel/web build"
+    "web:build": "pnpm --filter @focrel/web build",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
