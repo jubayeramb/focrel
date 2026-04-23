@@ -72,59 +72,136 @@ pub async fn list_running_apps() -> AppResult<Vec<RunningApp>> {
 }
 
 fn parse_lsappinfo(output: &str) -> Vec<RunningApp> {
-    // lsappinfo outputs blocks per app; lines of interest look like:
-    //   "bundleID"="com.apple.Safari"
-    //   "name"="Safari"
-    // We collect pairs by scanning each block sequentially.
+    // Real `lsappinfo list` output looks like:
+    //    1) "Google Chrome" ASN:0x0-0x60060:
+    //       bundleID="com.google.Chrome"
+    //       bundle path="/Applications/Google Chrome.app"
+    //       pid = 8425 type="Foreground" flavor=3 ...
+    //    2) "universalaccessd" ASN:0x0-0xb00b:
+    //       bundleID=[ NULL ]
+    //       ...
+    //
+    // A new block starts at any line matching `^\s*\d+\)\s+"name" ASN:…`.
+    // Field lines are indented and use `key="value"` (no quotes around the key).
+    // We only keep apps whose `type` is `Foreground` — everything else is a
+    // background daemon, XPC helper, menubar UIElement, or unresolved bundle.
     let mut apps = Vec::new();
-    let mut current_name: Option<String> = None;
-    let mut current_bundle: Option<String> = None;
+    let mut current: Option<BlockAccum> = None;
 
-    for line in output.lines() {
-        let line = line.trim();
+    for raw_line in output.lines() {
+        let line = raw_line.trim();
 
-        if let Some(val) = extract_quoted_value(line, "bundleID") {
-            current_bundle = Some(val);
-        } else if let Some(val) = extract_quoted_value(line, "name") {
-            current_name = Some(val);
+        if let Some(name) = parse_header_name(line) {
+            // Close out the previous block, if any.
+            if let Some(block) = current.take() {
+                if let Some(app) = block.finish() {
+                    apps.push(app);
+                }
+            }
+            current = Some(BlockAccum::new(name));
+            continue;
         }
 
-        // A blank line separates app blocks; emit when we have both fields.
-        if line.is_empty() {
-            if let (Some(bundle_id), Some(name)) = (current_bundle.take(), current_name.take()) {
-                if !bundle_id.is_empty() {
-                    apps.push(RunningApp {
-                        bundle_id,
-                        name,
-                        bundle_path: None,
-                    });
-                }
+        let Some(block) = current.as_mut() else { continue };
+
+        if let Some(val) = parse_field(line, "bundleID") {
+            // "[ NULL ]" shows up for apps without a registered bundle id.
+            if !val.is_empty() && val != "[ NULL ]" {
+                block.bundle_id = Some(val);
+            }
+        } else if let Some(val) = parse_field(line, "bundle path") {
+            if !val.is_empty() && val != "[ NULL ]" {
+                block.bundle_path = Some(val);
+            }
+        } else if line.contains("type=") {
+            // `type=` sits on the pid line, e.g.
+            //   pid = 8425 type="Foreground" flavor=3 Version=…
+            if let Some(t) = parse_inline_type(line) {
+                block.app_type = Some(t);
             }
         }
     }
 
-    // Flush last block (no trailing blank line).
-    if let (Some(bundle_id), Some(name)) = (current_bundle, current_name) {
-        if !bundle_id.is_empty() {
-            apps.push(RunningApp {
-                bundle_id,
-                name,
-                bundle_path: None,
-            });
+    if let Some(block) = current.take() {
+        if let Some(app) = block.finish() {
+            apps.push(app);
         }
     }
 
     apps
 }
 
-fn extract_quoted_value<'a>(line: &'a str, key: &str) -> Option<String> {
-    // Matches: "key"="value"
-    let prefix = format!(r#""{key}"=""#);
-    if let Some(rest) = line.strip_prefix(&prefix) {
-        let val = rest.trim_end_matches('"');
-        return Some(val.to_string());
+struct BlockAccum {
+    name: String,
+    bundle_id: Option<String>,
+    bundle_path: Option<String>,
+    app_type: Option<String>,
+}
+
+impl BlockAccum {
+    fn new(name: String) -> Self {
+        Self {
+            name,
+            bundle_id: None,
+            bundle_path: None,
+            app_type: None,
+        }
     }
-    None
+
+    fn finish(self) -> Option<RunningApp> {
+        let bundle_id = self.bundle_id?;
+        if self.app_type.as_deref() != Some("Foreground") {
+            return None;
+        }
+        Some(RunningApp {
+            bundle_id,
+            name: self.name,
+            bundle_path: self.bundle_path,
+        })
+    }
+}
+
+/// Matches header lines like `  17) "Google Chrome" ASN:0x0-0x60060:` and
+/// returns the quoted app name.
+fn parse_header_name(line: &str) -> Option<String> {
+    let rest = line.trim_start();
+    // Must start with `<digits>) `.
+    let after_digits = rest.trim_start_matches(|c: char| c.is_ascii_digit());
+    if after_digits.len() == rest.len() {
+        return None;
+    }
+    let after_paren = after_digits.strip_prefix(")")?.trim_start();
+    let quoted = after_paren.strip_prefix('"')?;
+    let end = quoted.find('"')?;
+    let name = &quoted[..end];
+    let tail = quoted[end + 1..].trim_start();
+    if !tail.starts_with("ASN:") {
+        return None;
+    }
+    Some(name.to_string())
+}
+
+/// Parses `key="value"` fields. Handles both `bundleID="..."` (leaf) and
+/// the NULL marker `bundleID=[ NULL ]`.
+fn parse_field(line: &str, key: &str) -> Option<String> {
+    let prefix = format!("{key}=");
+    let rest = line.strip_prefix(&prefix)?;
+    if let Some(val) = rest.strip_prefix('"') {
+        let end = val.find('"')?;
+        return Some(val[..end].to_string());
+    }
+    // Non-quoted values (e.g. `[ NULL ]`) — hand back the trimmed token so the
+    // caller can filter by its own rules.
+    Some(rest.trim().to_string())
+}
+
+/// Pulls the `type="…"` token out of a multi-field pid line.
+fn parse_inline_type(line: &str) -> Option<String> {
+    let idx = line.find("type=\"")?;
+    let start = idx + "type=\"".len();
+    let tail = &line[start..];
+    let end = tail.find('"')?;
+    Some(tail[..end].to_string())
 }
 
 #[tauri::command]

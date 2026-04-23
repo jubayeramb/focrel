@@ -177,9 +177,13 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       if (context.quitAllApps === 1) {
         try {
           const running = await apps.listRunningApps();
+          // Finder shows up as Foreground but killing it flashes the desktop
+          // and isn't what users mean by "close running apps". Focrel itself
+          // is obviously excluded.
+          const SPARE = new Set(["com.focrel.app", "com.apple.finder"]);
           const toQuit = running
             .map((r) => r.bundleId)
-            .filter((id) => id && id !== "com.focrel.app");
+            .filter((id) => id && !SPARE.has(id));
           if (toQuit.length > 0) {
             appsActuallyQuit = await apps.quitApps(toQuit);
           }
