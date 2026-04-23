@@ -98,9 +98,10 @@ jobs:
         run: node scripts/release-notes.mjs
 
       # --- Build the update manifest (latest.json) the updater fetches on
-      # --- every launch. URLs point at the R2 bucket (public), so the
-      # --- Tauri updater and the /download page can both fetch anonymously
-      # --- even though the GitHub repo stays private.
+      # --- every launch. Asset URLs reference the public mirror repo
+      # --- (`jubayeramb/focrel-releases`) so the Tauri updater and the
+      # --- /download page can both fetch anonymously even though the
+      # --- source repo stays private.
       - name: Generate latest.json
         run: |
           set -euo pipefail
@@ -115,15 +116,16 @@ jobs:
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           DMG_SIZE="$(stat -f%z "$DMG_PATH")"
 
-          BASE='${{ secrets.UPDATES_BASE_URL }}'
-          if [[ -z "$BASE" ]]; then
-            echo "::error::secret UPDATES_BASE_URL is not set (see RELEASING.md)"
-            exit 1
+          RELEASES_REPO='${{ vars.RELEASES_REPO }}'
+          if [[ -z "$RELEASES_REPO" ]]; then
+            # Fallback for first-run: matches the default repo name we
+            # recommend in RELEASING.md. Override via repo variable
+            # RELEASES_REPO if you name it differently.
+            RELEASES_REPO="${{ github.repository_owner }}/focrel-releases"
           fi
-          # Trim a trailing slash so `${BASE}/foo` is always well-formed.
-          BASE="${BASE%/}"
-          TAR_URL="${BASE}/${TAG}/${TAR_NAME}"
-          DMG_URL="${BASE}/${TAG}/${DMG_NAME}"
+          BASE="https://github.com/${RELEASES_REPO}/releases/download/${TAG}"
+          TAR_URL="${BASE}/${TAR_NAME}"
+          DMG_URL="${BASE}/${DMG_NAME}"
 
           # Custom fields (dmg, tag_name) sit alongside Tauri's required
           # shape — the updater ignores unknown keys, and /download reads
@@ -152,54 +154,26 @@ jobs:
           echo "--- latest.json ---"
           cat latest.json
 
-      # --- Publish the DMG + updater tarball + signature + manifest to the
-      # --- public R2 bucket. Versioned assets get immutable cache (we
-      # --- never overwrite a version's bytes), latest.json gets a short
-      # --- TTL so new releases propagate within a minute.
-      - name: Upload artefacts to Cloudflare R2
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          TAG="${{ steps.version.outputs.tag }}"
-          DMG_PATH='${{ steps.bundle.outputs.dmg }}'
-          TAR_PATH='${{ steps.bundle.outputs.tar }}'
-          SIG_PATH='${{ steps.bundle.outputs.sig }}'
-          DMG_NAME="$(basename "$DMG_PATH")"
-          TAR_NAME="$(basename "$TAR_PATH")"
-          SIG_NAME="$(basename "$SIG_PATH")"
-          BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}'
-
-          put() {
-            local key="$1"
-            local file="$2"
-            local ctype="$3"
-            local cache="$4"
-            pnpm dlx wrangler@4 r2 object put \
-              "${BUCKET}/${key}" \
-              --file="$file" \
-              --content-type="$ctype" \
-              --cache-control="$cache" \
-              --remote
-          }
-
-          # Versioned — immutable, aggressive cache. One-year max-age.
-          put "${TAG}/${DMG_NAME}" "$DMG_PATH" "application/x-apple-diskimage" "public,max-age=31536000,immutable"
-          put "${TAG}/${TAR_NAME}" "$TAR_PATH" "application/gzip"               "public,max-age=31536000,immutable"
-          put "${TAG}/${SIG_NAME}" "$SIG_PATH" "text/plain"                     "public,max-age=31536000,immutable"
-
-          # Manifest — short TTL so clients see new releases within ~1min.
-          put "latest.json" "latest.json" "application/json" "public,max-age=60"
-
-      # --- Also mirror to a GitHub Release so `gh release list` + the
-      # --- workflow summary page keep showing the artefacts. Clients
-      # --- never hit these URLs (updater + /download use R2) — this is
-      # --- purely for our own inspection convenience.
-      - name: Mirror to GitHub Release
+      # --- Publish the DMG + updater tarball + signature + manifest as a
+      # --- GitHub Release on the PUBLIC mirror repo. Anonymous clients
+      # --- can read both the API listing and the asset download URLs
+      # --- because that repo is public; the source repo stays private.
+      # ---
+      # --- The target repo is resolved from the `RELEASES_REPO` variable
+      # --- (set at Repo → Settings → Actions → Variables). Token is the
+      # --- `RELEASES_REPO_TOKEN` secret — a fine-grained PAT scoped to
+      # --- the mirror repo with Contents: Write, nothing else. See
+      # --- RELEASING.md for the exact token creation steps.
+      - name: Publish release to focrel-releases
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ vars.RELEASES_REPO || format('{0}/focrel-releases', github.repository_owner) }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN }}
           tag_name: ${{ steps.version.outputs.tag }}
+          # target_commitish is the ref the tag gets created on in the
+          # target repo. The mirror repo has its own history (README,
+          # maybe nothing else), so we pin this to its main branch.
+          target_commitish: main
           name: Focrel ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false

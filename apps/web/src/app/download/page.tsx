@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, ShieldAlert, Terminal } from "lucide-react";
+import { ArrowLeft, Download, Github, ShieldAlert, Terminal } from "lucide-react";
 import { productName } from "@focrel/brand";
 import { Footer } from "@/components/marketing/footer";
 import { Navbar } from "@/components/marketing/navbar";
-import { fetchLatestDesktopRelease, formatMB } from "@/lib/releases";
+import {
+  fetchLatestDesktopRelease,
+  formatMB,
+  GH_RELEASES_URL,
+} from "@/lib/releases";
 
 export const metadata: Metadata = {
   title: `Download ${productName} for macOS`,
@@ -98,8 +102,17 @@ function ReleaseCard({
           </div>
         </div>
       )}
-      <div className="mt-4 text-xs text-muted-foreground">
-        Published {new Date(release.publishedAt).toLocaleDateString()}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <a
+          href={`${GH_RELEASES_URL}/tag/${release.tagName}`}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+        >
+          <Github className="size-3.5" />
+          View on GitHub
+        </a>
+        <span>Published {new Date(release.publishedAt).toLocaleDateString()}</span>
       </div>
     </div>
   );
@@ -111,7 +124,16 @@ function PendingCard() {
       <div className="text-sm font-medium text-foreground">Release pending</div>
       <p className="mt-2 text-sm text-muted-foreground">
         The first public DMG hasn&apos;t shipped yet — we&apos;re finalizing the
-        release pipeline. Check back soon.
+        release pipeline. Follow along on{" "}
+        <a
+          href={GH_RELEASES_URL}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="underline underline-offset-2 transition-colors hover:text-foreground"
+        >
+          GitHub Releases
+        </a>{" "}
+        or check back soon.
       </p>
     </div>
   );
