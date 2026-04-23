@@ -25,7 +25,7 @@ export function Footer() {
             links={[
               { href: "#features", label: "Features" },
               { href: "#how-it-works", label: "How it works" },
-              { href: "#download", label: "Download" },
+              { href: "/download", label: "Download" },
               { href: "#faq", label: "FAQ" },
             ]}
           />
@@ -40,7 +40,11 @@ export function Footer() {
           <FooterColumn
             heading="Connect"
             links={[
-              { href: "https://github.com", label: "GitHub", external: true },
+              {
+                href: "https://github.com/jubayeramb/focrel",
+                label: "GitHub",
+                external: true,
+              },
               { href: `mailto:${contactEmail}`, label: "Email" },
             ]}
           />

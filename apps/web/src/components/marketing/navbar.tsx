@@ -29,7 +29,7 @@ export function Navbar() {
           ))}
         </nav>
         <Link
-          href="#download"
+          href="/download"
           className="inline-flex h-8 items-center justify-center rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition hover:opacity-90"
         >
           Download
