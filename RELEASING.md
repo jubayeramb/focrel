@@ -21,7 +21,30 @@ This produces:
 - `~/.focrel/update-signing.key` — private key. **Never commit.**
 - `~/.focrel/update-signing.key.pub` — public key. Already pasted into `apps/desktop/src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
 
-### 2. Add GitHub secrets
+### 2. Set up the Cloudflare R2 update host
+
+The GitHub repo is private, so we can't serve `latest.json` or the DMG from GitHub Releases to anonymous clients. Instead, the release workflow uploads everything to a **public** Cloudflare R2 bucket fronted by a custom domain. The Tauri updater and the `/download` page both read from that same URL.
+
+One-time:
+
+1. **Create the bucket.**  In the Cloudflare dashboard → R2 → **Create bucket**. Name it `focrel-releases` (or anything; match the secret below).
+
+2. **Expose it under a custom domain.**  Bucket → Settings → **Public access** → add `updates.focrel.com` under "Custom Domains". Cloudflare will create the CNAME automatically if `focrel.com` is already on your account; otherwise point a CNAME manually. Leave the default `r2.dev` URL disabled — we only publish through the custom domain.
+
+3. **Create a scoped API token.**  Cloudflare dashboard → **My Profile → API Tokens → Create Token → Custom**. Permissions: **Account · R2 → Edit**. Scope: **All accounts** (or the one with the bucket). Save the token string.
+
+4. **Add these GitHub secrets** (Repo → Settings → Secrets and variables → Actions):
+
+   | Name                         | Value                                                                                   |
+   | ---------------------------- | --------------------------------------------------------------------------------------- |
+   | `CLOUDFLARE_ACCOUNT_ID`      | 32-char hex from the Cloudflare dashboard (may already exist for the web deploy).       |
+   | `CLOUDFLARE_R2_API_TOKEN`    | The token from step 3 — R2:Edit scope. Separate from the Pages token for least privilege. |
+   | `CLOUDFLARE_R2_BUCKET`       | `focrel-releases` (or whatever you named it).                                           |
+   | `UPDATES_BASE_URL`           | `https://updates.focrel.com` (no trailing slash). Must match the custom domain in step 2. |
+
+`UPDATES_BASE_URL` is already hardcoded into two committed files — `apps/desktop/src-tauri/tauri.conf.json` (the Tauri updater endpoint) and `apps/web/src/lib/releases.ts` (the `/download` fetch). If you ever change the host, update all three in the same commit.
+
+### 3. Add signing-key GitHub secrets
 
 Repo → Settings → Secrets and variables → Actions → New repository secret:
 
@@ -60,9 +83,10 @@ Pushing the tag fires `.github/workflows/release-desktop.yml`, which:
 
 1. Builds a universal (arm64 + Intel) macOS bundle via `tauri build --target universal-apple-darwin`.
 2. Signs the `.app.tar.gz` with your private key.
-3. Generates `latest.json` (the updater manifest).
-4. Publishes a GitHub Release with the DMG, tar.gz, sig, and manifest.
-5. Fires a `workflow_dispatch` at `deploy-web.yml` so focrel.com rebuilds and the `/download` page picks up the new version.
+3. Generates `RELEASE_NOTES.md` (grouped changelog from Conventional Commits) and `latest.json` (Tauri updater manifest with R2 URLs embedded).
+4. **Uploads the DMG, `.app.tar.gz`, `.sig`, and `latest.json` to the R2 bucket** — versioned artefacts under `<tag>/…` with immutable cache; `latest.json` at the root with a 60s TTL so new releases propagate within a minute.
+5. Mirrors the same four files to a GitHub Release (for your own inspection — clients never hit those URLs).
+6. Fires a `workflow_dispatch` at `deploy-web.yml` so focrel.com rebuilds and the `/download` page picks up the new version.
 
 End-to-end takes ~10 minutes on the `macos-14` runner the first time, faster once `Swatinem/rust-cache` has a hit.
 

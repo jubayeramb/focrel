@@ -98,39 +98,105 @@ jobs:
         run: node scripts/release-notes.mjs
 
       # --- Build the update manifest (latest.json) the updater fetches on
-      # --- every launch. Download URLs point at the same assets uploaded
-      # --- to this release in the step below.
+      # --- every launch. URLs point at the R2 bucket (public), so the
+      # --- Tauri updater and the /download page can both fetch anonymously
+      # --- even though the GitHub repo stays private.
       - name: Generate latest.json
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           TAG="${{ steps.version.outputs.tag }}"
-          TAR_NAME="$(basename '${{ steps.bundle.outputs.tar }}')"
-          SIG_CONTENT="$(cat '${{ steps.bundle.outputs.sig }}')"
+          DMG_PATH='${{ steps.bundle.outputs.dmg }}'
+          TAR_PATH='${{ steps.bundle.outputs.tar }}'
+          SIG_PATH='${{ steps.bundle.outputs.sig }}'
+          DMG_NAME="$(basename "$DMG_PATH")"
+          TAR_NAME="$(basename "$TAR_PATH")"
+          SIG_CONTENT="$(cat "$SIG_PATH")"
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${TAR_NAME}"
-          # Read the generated changelog. jq's --rawfile handles multiline
-          # content + escaping without us hand-rolling the JSON escapes.
+          DMG_SIZE="$(stat -f%z "$DMG_PATH")"
+
+          BASE='${{ secrets.UPDATES_BASE_URL }}'
+          if [[ -z "$BASE" ]]; then
+            echo "::error::secret UPDATES_BASE_URL is not set (see RELEASING.md)"
+            exit 1
+          fi
+          # Trim a trailing slash so `${BASE}/foo` is always well-formed.
+          BASE="${BASE%/}"
+          TAR_URL="${BASE}/${TAG}/${TAR_NAME}"
+          DMG_URL="${BASE}/${TAG}/${DMG_NAME}"
+
+          # Custom fields (dmg, tag_name) sit alongside Tauri's required
+          # shape — the updater ignores unknown keys, and /download reads
+          # them for the version/size badge + download button URL.
           jq -n \
             --arg version "$VERSION" \
+            --arg tag "$TAG" \
             --arg pub_date "$PUB_DATE" \
-            --arg url "$ASSET_URL" \
+            --arg tar_url "$TAR_URL" \
+            --arg dmg_url "$DMG_URL" \
             --arg sig "$SIG_CONTENT" \
+            --argjson dmg_size "$DMG_SIZE" \
             --rawfile notes RELEASE_NOTES.md \
             '{
               version: $version,
               notes: $notes,
               pub_date: $pub_date,
               platforms: {
-                "darwin-x86_64": { signature: $sig, url: $url },
-                "darwin-aarch64": { signature: $sig, url: $url }
-              }
+                "darwin-x86_64": { signature: $sig, url: $tar_url },
+                "darwin-aarch64": { signature: $sig, url: $tar_url }
+              },
+              dmg: { url: $dmg_url, size_bytes: $dmg_size },
+              tag_name: $tag
             }' > latest.json
 
           echo "--- latest.json ---"
           cat latest.json
 
-      - name: Publish GitHub Release
+      # --- Publish the DMG + updater tarball + signature + manifest to the
+      # --- public R2 bucket. Versioned assets get immutable cache (we
+      # --- never overwrite a version's bytes), latest.json gets a short
+      # --- TTL so new releases propagate within a minute.
+      - name: Upload artefacts to Cloudflare R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          DMG_PATH='${{ steps.bundle.outputs.dmg }}'
+          TAR_PATH='${{ steps.bundle.outputs.tar }}'
+          SIG_PATH='${{ steps.bundle.outputs.sig }}'
+          DMG_NAME="$(basename "$DMG_PATH")"
+          TAR_NAME="$(basename "$TAR_PATH")"
+          SIG_NAME="$(basename "$SIG_PATH")"
+          BUCKET='${{ secrets.CLOUDFLARE_R2_BUCKET }}'
+
+          put() {
+            local key="$1"
+            local file="$2"
+            local ctype="$3"
+            local cache="$4"
+            pnpm dlx wrangler@4 r2 object put \
+              "${BUCKET}/${key}" \
+              --file="$file" \
+              --content-type="$ctype" \
+              --cache-control="$cache" \
+              --remote
+          }
+
+          # Versioned — immutable, aggressive cache. One-year max-age.
+          put "${TAG}/${DMG_NAME}" "$DMG_PATH" "application/x-apple-diskimage" "public,max-age=31536000,immutable"
+          put "${TAG}/${TAR_NAME}" "$TAR_PATH" "application/gzip"               "public,max-age=31536000,immutable"
+          put "${TAG}/${SIG_NAME}" "$SIG_PATH" "text/plain"                     "public,max-age=31536000,immutable"
+
+          # Manifest — short TTL so clients see new releases within ~1min.
+          put "latest.json" "latest.json" "application/json" "public,max-age=60"
+
+      # --- Also mirror to a GitHub Release so `gh release list` + the
+      # --- workflow summary page keep showing the artefacts. Clients
+      # --- never hit these URLs (updater + /download use R2) — this is
+      # --- purely for our own inspection convenience.
+      - name: Mirror to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
