@@ -1,0 +1,97 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="body" cx="50%" cy="50%" r="72%">
+      <stop offset="0%" stop-color="#2a1a55"/>
+      <stop offset="35%" stop-color="#1f2354"/>
+      <stop offset="70%" stop-color="#17434e"/>
+      <stop offset="100%" stop-color="#1a5b5e"/>
+    </radialGradient>
+    <linearGradient id="ring1Fill" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#7ddcd2" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#2f8a84" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#134f55" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="ring1Edge" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="ring2Fill" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#6f8edd" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#3c4aa8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1f1b5e" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="ring2Edge" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="ring3Fill" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#b48aef" stop-opacity="0.9"/>
+      <stop offset="55%" stop-color="#6a3fc8" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#2e1260" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="ring3Edge" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#8d5fe0"/>
+      <stop offset="45%" stop-color="#4a2a9e"/>
+      <stop offset="100%" stop-color="#160a38"/>
+    </radialGradient>
+    <radialGradient id="bloom" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="25%" stop-color="#e8d4ff" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#b890ff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#6a3fc8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Apple icon grid: content lives inside an 824×824 squircle centered in 1024 (100px padding each side, ~9.8%). -->
+    <clipPath id="squircle">
+      <path d="M 324 100 C 200 100, 100 200, 100 324 L 100 700 C 100 824, 200 924, 324 924 L 700 924 C 824 924, 924 824, 924 700 L 924 324 C 924 200, 824 100, 700 100 Z"/>
+    </clipPath>
+  </defs>
+  <!-- Clip and transform on the same <g> composes oddly in resvg (the
+       content shifted and extended past the clip). Split them: outer <g>
+       owns the clip in root coords, inner <g> owns the transform. -->
+  <g clip-path="url(#squircle)">
+    <g transform="matrix(1.609375 0 0 1.609375 100 100)">
+    <rect width="512" height="512" fill="url(#body)"/>
+    <circle cx="120" cy="420" r="280" fill="#2fb3a5" opacity="0.10"/>
+    <circle cx="392" cy="110" r="260" fill="#6a3fd2" opacity="0.14"/>
+    <rect width="512" height="260" fill="url(#sheen)"/>
+    <g transform="translate(256 256) rotate(-18)">
+      <rect x="-170" y="-170" width="340" height="340" rx="60" ry="60" fill="url(#ring1Fill)"/>
+      <rect x="-170" y="-170" width="340" height="340" rx="60" ry="60" fill="none" stroke="url(#ring1Edge)" stroke-width="1.75"/>
+      <rect x="-170" y="-170" width="340" height="340" rx="60" ry="60" fill="none" stroke="rgba(0,0,0,0.30)" stroke-width="1"/>
+      <ellipse cx="-80" cy="-120" rx="80" ry="14" fill="#ffffff" opacity="0.18" transform="rotate(-8 -80 -120)"/>
+    </g>
+    <g transform="translate(256 256) rotate(12)">
+      <rect x="-124" y="-124" width="248" height="248" rx="48" ry="48" fill="url(#ring2Fill)"/>
+      <rect x="-124" y="-124" width="248" height="248" rx="48" ry="48" fill="none" stroke="url(#ring2Edge)" stroke-width="1.75"/>
+      <rect x="-124" y="-124" width="248" height="248" rx="48" ry="48" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+      <ellipse cx="-60" cy="-88" rx="60" ry="10" fill="#ffffff" opacity="0.22" transform="rotate(-6 -60 -88)"/>
+    </g>
+    <g transform="translate(256 256) rotate(-6)">
+      <rect x="-82" y="-82" width="164" height="164" rx="36" ry="36" fill="url(#ring3Fill)"/>
+      <rect x="-82" y="-82" width="164" height="164" rx="36" ry="36" fill="none" stroke="url(#ring3Edge)" stroke-width="1.75"/>
+      <rect x="-82" y="-82" width="164" height="164" rx="36" ry="36" fill="none" stroke="rgba(0,0,0,0.40)" stroke-width="1"/>
+      <ellipse cx="-38" cy="-58" rx="38" ry="7" fill="#ffffff" opacity="0.35" transform="rotate(-6 -38 -58)"/>
+    </g>
+    <circle cx="256" cy="256" r="54" fill="url(#core)"/>
+    <circle cx="256" cy="256" r="54" fill="none" stroke="rgba(10,4,28,0.7)" stroke-width="2"/>
+    <path d="M 210 244 A 54 54 0 0 1 302 244" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="256" cy="256" r="82" fill="url(#bloom)" opacity="0.85"/>
+    <circle cx="256" cy="256" r="28" fill="url(#bloom)"/>
+    <circle cx="256" cy="256" r="6" fill="#ffffff"/>
+    <circle cx="256" cy="256" r="2.5" fill="#ffffff"/>
+    </g>
+  </g>
+  <path d="M 324 100 C 200 100, 100 200, 100 324 L 100 700 C 100 824, 200 924, 324 924 L 700 924 C 824 924, 924 824, 924 700 L 924 324 C 924 200, 824 100, 700 100 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3"/>
+</svg>

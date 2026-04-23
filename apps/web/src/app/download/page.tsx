@@ -149,7 +149,8 @@ function UnsignedInstallGuide() {
             Unsigned beta — one-time install step
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            {productName} isn&apos;t yet signed with an Apple Developer ID, so macOS
+            {productName}
+            {" "}isn&apos;t yet signed with an Apple Developer ID, so macOS
             blocks the first launch. This extra step is only needed once; after
             that the app opens normally and auto-updates take over. Code-signing
             lands in v1.0.

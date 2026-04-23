@@ -39,15 +39,28 @@ type GhRelease = {
 };
 
 // Grabs the newest `desktop-v*` release. We filter by tag prefix rather than
-// using `/releases/latest` because the web repo might later cut tags for
-// other platforms (e.g. a separate `web-v*` for the marketing site) and we
-// don't want those polluting the download page.
+// using `/releases/latest` because the repo might later cut tags for other
+// platforms (e.g. a separate `web-v*` for the marketing site) and we don't
+// want those polluting the download page.
+//
+// The repo is private right now, so unauthenticated GitHub API calls return
+// 404. The deploy workflow forwards its `GITHUB_TOKEN` into the build as
+// `GITHUB_RELEASES_TOKEN` — we attach it as a Bearer header when present.
+// Still graceful: if the env var is missing, we render PendingCard instead
+// of failing the static build.
 export async function fetchLatestDesktopRelease(): Promise<ReleaseInfo | null> {
   try {
+    const token =
+      process.env.GITHUB_RELEASES_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=20`,
       {
-        headers: { Accept: "application/vnd.github+json" },
+        headers,
         // Static export reads this at build time. Cache aggressively so
         // iterating on the page during `next dev` doesn't rate-limit the API.
         next: { revalidate: 3600 },
@@ -55,7 +68,9 @@ export async function fetchLatestDesktopRelease(): Promise<ReleaseInfo | null> {
     );
     if (!res.ok) {
       console.warn(
-        `[focrel/web] GitHub releases fetch returned ${res.status}; rendering placeholder`,
+        `[focrel/web] GitHub releases fetch returned ${res.status}${
+          token ? "" : " (no auth token — private repo requires one)"
+        }; rendering placeholder`,
       );
       return null;
     }

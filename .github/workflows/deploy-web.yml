@@ -50,6 +50,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build web
+        # Forward the workflow's auto-issued GITHUB_TOKEN so the /download
+        # page's build-time GitHub Releases fetch can read the (private) repo.
+        # Without this the API 404s on unauthenticated requests and the page
+        # silently falls back to the "Release pending" card.
+        env:
+          GITHUB_RELEASES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm --filter @focrel/web build
 
       - name: Deploy to Cloudflare Pages
