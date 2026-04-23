@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, Github, ShieldAlert, Terminal } from "lucide-react";
+import { ArrowLeft, Download, Github, ShieldAlert } from "lucide-react";
 import { productName } from "@focrel/brand";
+import { CopyableCommand } from "@/components/copyable-command";
 import { Footer } from "@/components/marketing/footer";
 import { Navbar } from "@/components/marketing/navbar";
 import {
@@ -166,15 +167,7 @@ function UnsignedInstallGuide() {
             </li>
             <li>
               <strong>Recommended — Terminal.app, one command:</strong>
-              <div className="mt-2 rounded-md border border-border bg-background/70 px-3 py-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Terminal className="size-3" />
-                  Paste and press return
-                </div>
-                <code className="mt-1 block font-mono text-xs text-foreground">
-                  xattr -cr /Applications/Focrel.app
-                </code>
-              </div>
+              <CopyableCommand command="xattr -cr /Applications/Focrel.app" />
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 Strips the quarantine flag macOS set when you downloaded the
                 DMG. Double-click {productName} after running it and it opens

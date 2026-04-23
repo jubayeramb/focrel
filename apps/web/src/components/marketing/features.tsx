@@ -1,8 +1,12 @@
 import {
+  BarChart3,
+  CalendarClock,
   CheckSquare,
+  DownloadCloud,
   Focus,
   Image as ImageIcon,
   Keyboard,
+  Minimize2,
   Music,
   PowerOff,
   Timer,
@@ -41,9 +45,29 @@ const features = [
     body: "Pick apps to close when a session starts — Slack, email, anything. They can come back when you're done.",
   },
   {
+    icon: CalendarClock,
+    title: "Scheduled sessions",
+    body: "Fire a context at any time on any day of the week — multiple slots per day if you want. Auto-start or just ping you.",
+  },
+  {
+    icon: BarChart3,
+    title: "Focus analytics",
+    body: "Daily and weekly minutes, completion rate, streaks, and a 14-day bar chart. Per-context breakdown, local, no tracking.",
+  },
+  {
+    icon: Minimize2,
+    title: "Mini mode",
+    body: "Shrink to a compact always-on-top timer when you want the clock visible without the full window.",
+  },
+  {
     icon: Keyboard,
     title: "Global hotkey + tray",
-    body: "Bring Focrel forward from anywhere. Start or stop a session without opening the window.",
+    body: "Bring Focrel forward from anywhere. Start, stop, or scrub music from the menubar without opening the window.",
+  },
+  {
+    icon: DownloadCloud,
+    title: "Silent auto-updates",
+    body: "New versions download in the background and prompt you to install when you're ready. Release notes included.",
   },
   {
     icon: Sparkles,
