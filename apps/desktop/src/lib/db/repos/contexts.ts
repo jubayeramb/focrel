@@ -23,6 +23,7 @@ type ContextRow = {
   music_paths: string;
   music_shuffle: number;
   apps_to_start: string;
+  quit_all_apps: number;
   created_at: number;
   updated_at: number;
   archived_at: number | null;
@@ -50,6 +51,7 @@ function toContext(row: ContextRow): Context {
     musicPaths: row.music_paths,
     musicShuffle: row.music_shuffle,
     appsToStart: row.apps_to_start,
+    quitAllApps: row.quit_all_apps,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -64,7 +66,7 @@ function toContext(row: ContextRow): Context {
 const SELECT_COLUMNS = `
   id, name, description, color, icon,
   wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
-  apps_to_quit, apps_to_start, blocked_sites, default_duration_minutes,
+  apps_to_quit, apps_to_start, quit_all_apps, blocked_sites, default_duration_minutes,
   schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
   music_loop, music_paths, music_shuffle,
   created_at, updated_at, archived_at
@@ -101,9 +103,9 @@ export const contextsRepo = {
         wallpaper_path, music_path, shortcut_name, revert_shortcut_name,
         apps_to_quit, blocked_sites, default_duration_minutes,
         schedule_enabled, schedule_time, schedule_days, schedule_auto_start,
-        music_loop, music_paths, music_shuffle, apps_to_start,
+        music_loop, music_paths, music_shuffle, apps_to_start, quit_all_apps,
         created_at, updated_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -125,6 +127,7 @@ export const contextsRepo = {
         input.musicPaths ?? "[]",
         input.musicShuffle ?? 0,
         input.appsToStart ?? "[]",
+        input.quitAllApps ?? 0,
         now,
         now,
         input.archivedAt ?? null,
@@ -158,6 +161,7 @@ export const contextsRepo = {
     if (patch.musicPaths !== undefined) { fields.push("music_paths = ?"); values.push(patch.musicPaths); }
     if (patch.musicShuffle !== undefined) { fields.push("music_shuffle = ?"); values.push(patch.musicShuffle); }
     if (patch.appsToStart !== undefined) { fields.push("apps_to_start = ?"); values.push(patch.appsToStart); }
+    if (patch.quitAllApps !== undefined) { fields.push("quit_all_apps = ?"); values.push(patch.quitAllApps); }
     if (patch.archivedAt !== undefined) { fields.push("archived_at = ?"); values.push(patch.archivedAt); }
 
     values.push(id);

@@ -170,15 +170,33 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         await shortcuts.runShortcut(context.shortcutName);
       }
 
-      let appsToQuit: string[] = [];
-      try {
-        appsToQuit = JSON.parse(context.appsToQuit) as string[];
-      } catch {
-        appsToQuit = [];
-      }
+      // `quitAllApps` wins over the hand-picked list: when the user has opted
+      // into a clean-slate start, snapshot the currently-running apps and
+      // quit every one except Focrel itself. Falls back to the hand-picked
+      // list when the toggle is off.
+      if (context.quitAllApps === 1) {
+        try {
+          const running = await apps.listRunningApps();
+          const toQuit = running
+            .map((r) => r.bundleId)
+            .filter((id) => id && id !== "com.focrel.app");
+          if (toQuit.length > 0) {
+            appsActuallyQuit = await apps.quitApps(toQuit);
+          }
+        } catch (err) {
+          console.warn("[focrel] quit-all-apps failed:", err);
+        }
+      } else {
+        let appsToQuit: string[] = [];
+        try {
+          appsToQuit = JSON.parse(context.appsToQuit) as string[];
+        } catch {
+          appsToQuit = [];
+        }
 
-      if (appsToQuit.length > 0) {
-        appsActuallyQuit = await apps.quitApps(appsToQuit);
+        if (appsToQuit.length > 0) {
+          appsActuallyQuit = await apps.quitApps(appsToQuit);
+        }
       }
 
       // Launch apps the user wants open for this context. Runs AFTER quit so

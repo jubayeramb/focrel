@@ -21,6 +21,7 @@ export const contexts = sqliteTable("contexts", {
   musicPaths: text("music_paths").notNull().default("[]"),
   musicShuffle: integer("music_shuffle").notNull().default(0),
   appsToStart: text("apps_to_start").notNull().default("[]"),
+  quitAllApps: integer("quit_all_apps").notNull().default(0),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
   archivedAt: integer("archived_at"),

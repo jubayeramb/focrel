@@ -34,6 +34,7 @@ interface ContextDraft {
   revertShortcutName: string | null;
   appsToQuit: string[];
   appsToStart: string[];
+  quitAllApps: number;
   blockedSites: string[];
   defaultDurationMinutes: number;
   scheduleEnabled: number;
@@ -56,6 +57,7 @@ const defaultDraft: ContextDraft = {
   revertShortcutName: null,
   appsToQuit: [],
   appsToStart: [],
+  quitAllApps: 0,
   blockedSites: [],
   defaultDurationMinutes: 25,
   scheduleEnabled: 0,
@@ -115,6 +117,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
           }
           return [];
         })(),
+        quitAllApps: loaded.quitAllApps,
         blockedSites: JSON.parse(loaded.blockedSites) as string[],
         defaultDurationMinutes: loaded.defaultDurationMinutes,
         scheduleEnabled: loaded.scheduleEnabled,
@@ -208,6 +211,7 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
         revertShortcutName: draft.revertShortcutName,
         appsToQuit: JSON.stringify(draft.appsToQuit),
         appsToStart: JSON.stringify(draft.appsToStart),
+        quitAllApps: draft.quitAllApps,
         blockedSites: JSON.stringify(draft.blockedSites),
         defaultDurationMinutes: draft.defaultDurationMinutes,
         scheduleEnabled: draft.scheduleEnabled,
@@ -492,12 +496,26 @@ export function ContextEditorPage({ contextId, onSave, onCancel }: ContextEditor
             {durationError && <p className="text-xs text-destructive">{durationError}</p>}
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-4 rounded-md border border-border bg-muted/30 px-3 py-2.5">
+              <div className="flex flex-col gap-0.5">
+                <Label className="text-sm">Quit all running apps</Label>
+                <p className="text-xs text-muted-foreground">
+                  Close every user-launched app except Focrel itself. Overrides the
+                  hand-picked list below.
+                </p>
+              </div>
+              <Switch
+                checked={draft.quitAllApps === 1}
+                onCheckedChange={(v) => patch("quitAllApps", v ? 1 : 0)}
+                disabled={saving}
+              />
+            </div>
             <Label>Apps to quit on session start</Label>
             <AppPicker
               value={draft.appsToQuit}
               onChange={(v) => patch("appsToQuit", v)}
-              disabled={saving}
+              disabled={saving || draft.quitAllApps === 1}
             />
           </div>
 
