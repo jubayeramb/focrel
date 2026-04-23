@@ -139,23 +139,39 @@ function StepPermissions({ onNext }: { onNext: () => void }) {
           <div className="flex flex-1 flex-col gap-1">
             <p className="text-sm font-medium text-foreground">macOS Focus shortcuts</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Focrel runs two Shortcuts by name to toggle Focus on and off.
+              Focrel doesn&apos;t use private APIs for Focus mode — it runs two
+              Shortcuts of yours by name, one to turn Focus on at session
+              start and one to turn it off at session end.
             </p>
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-muted/40 p-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            In Shortcuts.app, create two shortcuts with the <span className="normal-case">Set Focus</span> action
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            One-time setup in Shortcuts.app
           </p>
-          <ol className="list-inside list-decimal space-y-1.5 text-sm text-foreground">
+          <ol className="list-inside list-decimal space-y-2 text-sm leading-relaxed text-foreground">
             <li>
-              <span className="text-muted-foreground">Turn On</span> →{" "}
-              <CopyableCode text="Focrel: Deep Work Focus On" />
+              Click <span className="font-medium">Open Shortcuts app</span> below
+              and hit <span className="font-medium">File → New Shortcut</span>.
             </li>
             <li>
-              <span className="text-muted-foreground">Turn Off</span> →{" "}
-              <CopyableCode text="Focrel: Deep Work Focus Off" />
+              Search the right-hand actions for{" "}
+              <span className="font-medium">Set Focus</span> and drag it in. Set
+              it to <span className="font-medium">Turn On</span> (Do Not Disturb
+              or any Focus of your choice), then rename the shortcut to{" "}
+              <CopyableCode text="Focrel: Deep Work Focus On" />.
+            </li>
+            <li>
+              Repeat with a second shortcut — same{" "}
+              <span className="font-medium">Set Focus</span> action but set to{" "}
+              <span className="font-medium">Turn Off</span>, renamed to{" "}
+              <CopyableCode text="Focrel: Deep Work Focus Off" />.
+            </li>
+            <li>
+              Later in Focrel&apos;s context editor, pick these two under{" "}
+              <span className="font-medium">macOS Shortcut</span> and{" "}
+              <span className="font-medium">Revert Shortcut</span>.
             </li>
           </ol>
         </div>
