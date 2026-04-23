@@ -4,16 +4,51 @@ import { useSessionStore } from "@/lib/stores/session-store";
 import { notify } from "@/lib/os/notifications";
 
 // Tracks the ISO date ("YYYY-MM-DD") each (context, time) last fired,
-// preventing duplicate fires per day per scheduled slot. Module-level map:
-// cleared on app restart. Key format: `${contextId}|${HH:MM}`.
-const firedToday = new Map<string, string>();
+// preventing duplicate fires per day per scheduled slot. Persisted to
+// localStorage so quitting and relaunching within the grace window doesn't
+// re-fire a slot that already ran — otherwise every restart around the
+// scheduled minute would start a surprise session.
+// Key format: `${contextId}|${HH:MM}`.
+const STORAGE_KEY = "focrel:schedule.firedToday.v1";
 
-// Grace window — the scheduled minute may pass while the app is launching,
-// a different session is active, or macOS AppNap throttles JS timers. We
-// still fire up to this many minutes late so a missed tick doesn't silently
-// skip the slot. Deliberately generous so a cold-start a few minutes past
-// the scheduled time still catches up; `firedToday` prevents double-fires.
-const GRACE_MINUTES = 30;
+function loadFiredToday(): Map<string, string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return new Map();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return new Map();
+    const map = new Map<string, string>();
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof v === "string") map.set(k, v);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function saveFiredToday(map: Map<string, string>): void {
+  try {
+    const today = todayIso();
+    const obj: Record<string, string> = {};
+    for (const [k, v] of map.entries()) {
+      // Prune stale entries from other days so the blob doesn't grow forever.
+      if (v === today) obj[k] = v;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  } catch {
+    /* noop — localStorage can be unavailable in some harnesses */
+  }
+}
+
+const firedToday = loadFiredToday();
+
+// Grace window — a scheduled minute may pass while the JS tick interval is
+// throttled or the event loop is busy. We still fire a few minutes late so
+// one delayed tick doesn't silently skip the slot. Intentionally small: a
+// longer window turns into a "surprise catch-up" when the user launches the
+// app shortly after a scheduled time. `firedToday` dedupes restarts.
+const GRACE_MINUTES = 5;
 
 function todayIso(): string {
   const d = new Date();
@@ -83,8 +118,10 @@ function check(): void {
       if (useSessionStore.getState().state.phase === "active") continue;
 
       // Mark fired BEFORE the async start() so a re-entrant tick can't
-      // double-launch the same (context, time) pair.
+      // double-launch the same (context, time) pair. Persist immediately so
+      // a quick quit/relaunch within the grace window sees the mark.
       firedToday.set(key, today);
+      saveFiredToday(firedToday);
 
       if (c.scheduleAutoStart === 1) {
         void useSessionStore.getState().start({
