@@ -34,6 +34,19 @@ jobs:
   deploy:
     name: Build + deploy
     runs-on: ubuntu-latest
+    # Skip path-triggered runs when the pushing commit is a release commit.
+    # The release script bumps versions in apps/web/package.json +
+    # packages/brand/package.json, which matches our path filter and would
+    # otherwise kick off a web build immediately — while the desktop
+    # release workflow is still building the DMG. That early deploy bakes
+    # "Release pending" into the static HTML. The release-desktop workflow
+    # re-fires us via workflow_dispatch after the GitHub Release is live,
+    # and workflow_dispatch bypasses this guard.
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      }}
     environment:
       name: production
       url: https://focrel.com
@@ -50,9 +63,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build web
-        # /download fetches `https://updates.focrel.com/latest.json` at
-        # build time (the same manifest the desktop updater uses). That
-        # URL is public R2, so no token plumbing is needed here.
+        # /download fetches the public `focrel-releases` repo's Releases API
+        # at build time. No token plumbing here because that repo is public.
         run: pnpm --filter @focrel/web build
 
       - name: Deploy to Cloudflare Pages

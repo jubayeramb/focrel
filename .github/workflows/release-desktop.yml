@@ -11,6 +11,10 @@ concurrency:
 
 permissions:
   contents: write
+  # Needed for the final "Trigger web redeploy" step to call
+  # workflow_dispatch on deploy-web.yml via GITHUB_TOKEN. Without this
+  # the REST call 403s silently and the web never rebuilds post-release.
+  actions: write
 
 jobs:
   build-macos:
@@ -187,20 +191,19 @@ jobs:
             latest.json
 
       # --- Nudge Cloudflare Pages to redeploy so /download picks up the
-      # --- new version by pinging the existing deploy-web workflow with
-      # --- a workflow_dispatch.
+      # --- new version by pinging the existing deploy-web workflow via
+      # --- workflow_dispatch. Requires `actions: write` in this
+      # --- workflow's permissions (declared above). Fails loudly — if
+      # --- this step is silently skipped the web gets stuck showing the
+      # --- prior release for hours.
       - name: Trigger web redeploy
         uses: actions/github-script@v7
         with:
           script: |
-            try {
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'deploy-web.yml',
-                ref: 'main',
-              });
-              core.info('Dispatched deploy-web.yml on main');
-            } catch (e) {
-              core.warning(`Could not dispatch deploy-web.yml: ${e.message}`);
-            }
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-web.yml',
+              ref: 'main',
+            });
+            core.info('Dispatched deploy-web.yml on main');
